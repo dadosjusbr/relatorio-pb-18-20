@@ -1,0 +1,46 @@
+---
+title: "DadosJus"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    css: '/home/david/mppb/entrega-relatorio/dadosjus/stylesheets/prettydoc-cayman.css'
+    highlight: github
+    df_print: paged
+---
+
+
+A lei de número 12.527, também conhecida como lei da transparência, foi criada em 18 de novembro de 2011. Essa lei tem como objetivo principal exigir que os órgãos integrantes da administração direta dos poderes Executivo, Legislativo, e Judiciário disponibilizem seus dados financeiros de forma pública e acessível para toda a população brasileira.
+Hoje todos os tribunais e ministérios públicos disponibilizam mensalmente em seus sites informações detalhada sobre seus gastos. Uma parte importante desses gastos são as remunerações dos trabalhadores e trabalhadoras desses órgãos.
+
+Apesar dos dados estarem disponíveis ainda é difícil ter um controle social sobre os gastos de remunerações. Isso ocorre pois os dados se encontram em diversos formatos de arquivos (.pdf, .ods, .xls, .csv, .html…) e frequentemente estão estruturados em formas diferentes, além de estarem espalhados em diversos sites e plataformas.
+
+O DadosJus tem como objetivo realizar o processo de libertação dos dados de gastos com remunerações do poder judiciário e dos ministérios públicos do Brasil. 
+
+## Sobre os dados
+As remunerações¹ incluem valores que vão além do salário². Os conhecidos auxílios ou indenizações, são gastos eventuais que podem constituir as remunerações. Auxílios como alimentação, pré escolar, saúde, natalidade, moradia e ajuda de custo, são exemplos de indenizações que podem ser recebidas por funcionários dos tribunais e ministérios públicos do Brasil
+
+¹Remuneração: é a soma do salário mais outras vantagens (indenizações e auxílios). 
+
+²Salário: valor recebido de acordo com a prestação de serviços, em decorrência do contrato de trabalho.
+
+## Paraíba
+
+No estado da Paraíba temos três tribunais. São eles: Tribunal de Justiça da Paraíba, Tribunal Regional Eleitoral da Paraíba, Tribunal Regional do Trabalho 13º Região.
+
+ -- Colocar um gráfico de barras 100% que mostre quais tribunais colocaram os dados ou não, isso pode dar um visão geral da transparência de cada órgão e da Paraíba. Exemplo abaixo-- 
+
+![](http://t-redactyl.io/figure/bar14-1.png)
+
+Uma parte para cada um dos Tribunais.
+
+### TJPB
+O TJPB atualmente tem um total de XXXX empregados. A média salarial é de XXXX. 
+
+-- Colocar outro grafico de barras 100% para mostrar os totais gastos com salario e indenizações. No X os meses no Y os totais -- 
+
+
+
+
+
+
+![](https://avatars2.githubusercontent.com/u/17051677?s=200&v=4)
