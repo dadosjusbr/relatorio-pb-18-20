@@ -15,7 +15,7 @@ library(tidyverse)
 dados = read_csv(here("dados/employees.csv"))
 
 dados_filtrados <- dados %>% 
-          filter(income_total > 0 & wage > 0 & perks_total > 0 & others_total > 0 & others_eventualbenefits > 0, others_positionoftrust > 0 & discounts_prevcontribution > 0 ) 
+          filter(income_total > 0 & wage > 0 & perks_total > 0 & others_total > 0) 
 # dados_filtrados %>% summary()
 ```
 
@@ -26,14 +26,14 @@ Apesar dos dados estarem disponíveis ainda é difícil ter um controle social s
 
 O DadosJus tem como objetivo realizar o processo de libertação dos dados de gastos com remunerações do poder judiciário e dos ministérios públicos do Brasil. 
 
-## Sobre os dados
+# Sobre os dados
 As remunerações¹ incluem valores que vão além do salário². Os conhecidos auxílios ou indenizações, são gastos eventuais que podem constituir as remunerações. Auxílios como alimentação, pré escolar, saúde, natalidade, moradia e ajuda de custo, são exemplos de indenizações que podem ser recebidas por funcionários dos tribunais e ministérios públicos do Brasil
 
 ¹Remuneração: é a soma do salário mais outras vantagens (indenizações e auxílios). 
 
 ²Salário: valor recebido de acordo com a prestação de serviços, em decorrência do contrato de trabalho.
 
-## Paraíba
+# Paraíba
 
 No estado da Paraíba temos três tribunais. São eles: Tribunal de Justiça da Paraíba, Tribunal Regional Eleitoral da Paraíba (TRE) e Tribunal Regional do Trabalho 13º Região (TRT13).
 No mês mais recente que temos dados disponíveis (outubro) o TRE apresentava um total de 801 funcionários e o no TRT13 são 1544.
@@ -45,41 +45,45 @@ dados %>%
   group_by(aid) %>% 
   count() %>% 
   ggplot(aes(x=aid, y=n, fill=aid)) +
-  geom_bar(stat="identity")+theme_minimal() + xlab("Órgão") + ylab("Total de funcionários") + labs(fill = "Tribunal") 
+  geom_bar(stat="identity")+theme_minimal() + scale_fill_brewer(palette = "Set2") + xlab("Órgão") + ylab("Total de funcionários") + labs(fill = "Tribunal") +
+  scale_fill_brewer(palette = "Set2") 
 ```
 
 
 
-### TRT13
+## TRT13
 O TRT13 atualmente tem um total de 1544 funcionários. A remuneração mediana no ano de 2019 foi de 24.290,00 R\$. Enquanto a máxima foi de 217.600,00 R$ e o mínimo de 10.550,00 R\$.
 No ano de 2018 tivemos uma remuneração mediana de 22.710,00 R\$. Enquanto a máxima é de 64.040,00 R\$ e o mínimo de 9.489,00 R$.
 
-No ano de 2019 tivemos a seguinte distribuição de remunerações.
+### Gastos com 'outros' são maiores que os de salários em alguns meses
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-dados_filtrados %>% 
-  filter(aid == "trt13") %>% 
-  filter(year == 2019) %>% 
-  ggplot(aes(income_total)) + 
-  theme(axis.text.x = element_text(angle = -60)) +
-  geom_histogram(binwidth=5000) + 
-  labs(y = "Total de funcionários", x = "Remuneração Total") + 
-  facet_wrap(~month)
+# Stacked barchart para o trt13
+bar_chart_trt_2019 <- dados_filtrados %>%
+  filter(aid == "trt13" & year == 2018) %>% 
+  gather(key="type", value = "value", wage, perks_total, others_total ) %>% 
+  select(name, role, value, type, month) %>% 
+  group_by(month, type) %>% 
+  summarise(sum = sum(value))
+
+
+bar_chart_trt_2019 %>%
+    ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_brewer(palette = "Set2") + theme_minimal() +
+    labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do TRT13 em 2018" ) +
+    scale_y_continuous(labels = scales::comma)
+
 ```
 
-
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-
-resumo_trt13_2019 <- dados_filtrados %>% 
-  filter(year == 2019) %>% 
-  filter(aid == "trt13") %>% 
-  pull(income_total) %>% 
-  summary()
-
-resumo_trt13_2018 <- dados_filtrados %>% 
-  filter(year == 2018) %>% 
-  filter(aid == "trt13") %>% 
-  pull(income_total) %>% 
-  summary()
+#Distribuição dos salários
+dados_filtrados %>%
+  filter(aid == "trt13" & month == 1 & year == 2019) %>%
+  ggplot(aes(x=aid, y=income_total, color =aid)) +
+  geom_violin() +
+  theme_minimal() + 
+  scale_color_brewer(palette = "Set2") +
+  ggbeeswarm::geom_beeswarm(shape=16, alpha= 0.5,position=position_jitter(0.2)) + theme(legend.position = "none") + labs(x="", y = "Remuneração", title = "Distribuição das remunerações do TRT13 em Janeiro de 2019")
 ```
 
 
@@ -88,34 +92,107 @@ resumo_trt13_2018 <- dados_filtrados %>%
 O TRE atualmente tem um total de 801 funcionários. A remuneração mediana no ano de 2019 foi de 20.920,00 R\$. Enquanto a máxima foi de 50.360,00 R$ e o mínimo de 3.827,00 R\$.
 No ano de 2018 tivemos uma remuneração mediana de 22.900,00 R\$. Enquanto a máxima é de 66.290,00 R\$ e o mínimo de 8.780,00 R$.
 
-No ano de 2019 tivemos a seguinte distribuição de remunerações.
-
+### Gastos com 'outros' são maiores que os de salários em alguns meses
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-dados_filtrados %>% 
-  filter(aid == "trepb") %>% 
-  filter(year == 2019) %>% 
-  ggplot(aes(income_total)) + 
-  theme(axis.text.x = element_text(angle = -60)) +
-  geom_histogram(binwidth=5000) + 
-  labs(y = "Total de funcionários", x = "Remuneração Total") + 
-  facet_wrap(~month)
+# Stacked barchart para o TRE
+bar_chart_tre_2019 <- dados_filtrados %>%
+  filter(aid == "trepb" & year == 2018) %>% 
+  gather(key="type", value = "value", wage, perks_total, others_total ) %>% 
+  select(name, role, value, type, month) %>% 
+  group_by(month, type) %>% 
+  summarise(sum = sum(value))
 
+
+bar_chart_tre_2019 %>%
+    ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_brewer(palette = "Set2") + theme_minimal() +
+    labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do TRE em 2018" ) +
+    scale_y_continuous(labels = scales::comma)
+```
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+#Distribuição dos salários
+dados_filtrados %>%
+  filter(aid == "trepb" & month == 1 & year == 2019) %>%
+  ggplot(aes(x=aid, y=income_total, color =aid)) +
+  geom_violin() +
+  theme_minimal() + 
+  scale_color_brewer(palette = "Set2") +
+  ggbeeswarm::geom_beeswarm(shape=20, alpha= 0.5,position=position_jitter(0.2)) + theme(legend.position = "none") + labs(x="", y = "Remuneração", title = "Distribuição das remunerações do TRE em Janeiro de 2019")
 ```
 
+
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-
-resumo_tre_2019 <- dados_filtrados %>% 
-  filter(year == 2019) %>% 
-  filter(aid == "trepb") %>% 
-  pull(income_total) %>% 
-  summary()
-
-resumo_tre_2018 <- dados_filtrados %>% 
-  filter(year == 2018) %>% 
-  filter(aid == "trepb") %>% 
-  pull(income_total) %>% 
-  summary()
+## JUNK CODE:
+# resumo_tre_2019 <- dados_filtrados %>% 
+#   filter(year == 2019) %>% 
+#   filter(aid == "trepb") %>% 
+#   pull(income_total) %>% 
+#   summary()
+# 
+# resumo_tre_2018 <- dados_filtrados %>% 
+#   filter(year == 2018) %>% 
+#   filter(aid == "trepb") %>% 
+#   pull(income_total) %>% 
+#   summary()
+# 
+# dados_filtrados %>% 
+#   filter(aid == "trepb") %>% 
+#   filter(year == 2019) %>% 
+#   ggplot(aes(income_total)) + 
+#   theme(axis.text.x = element_text(angle = -60)) +
+#   geom_histogram(binwidth=5000) + 
+#   labs(y = "Total de funcionários", x = "Remuneração Total") + 
+#   facet_wrap(~month)
+# 
+# dados_filtrados %>% 
+#   filter(aid == "trt13") %>% 
+#   filter(year == 2019) %>% 
+#   ggplot(aes(income_total)) + 
+#   theme(axis.text.x = element_text(angle = -60)) +
+#   geom_histogram(binwidth=5000) + 
+#   labs(y = "Total de funcionários", x = "Remuneração Total") + 
+#   facet_wrap(~month)
+# 
+# 
+# resumo_trt13_2019 <- dados_filtrados %>% 
+#   filter(year == 2019) %>% 
+#   filter(aid == "trt13") %>% 
+#   pull(income_total) %>% 
+#   summary()
+# 
+# resumo_trt13_2018 <- dados_filtrados %>% 
+#   filter(year == 2018) %>% 
+#   filter(aid == "trt13") %>% 
+#   pull(income_total) %>% 
+#   summary()
+# 
+# ala <- dados_filtrados %>%
+#   filter(aid == "trepb") %>% 
+#   filter(year == 2019) %>% 
+#   gather(key="type", value = "value", wage, perks_total, others_total ) %>% 
+#   select(name, role, value, type, month)
+# 
+# 
+#   agrupado <- ala %>% group_by(month, type) %>% 
+#     summarise(sum = sum(value))
+# 
+# a <- data.frame(type = c("w","p","t","w","p","t"), mes = c(1,1,1,2,2,2), valor = c(10,20,30,15,40,30))
+# 
+# agrupado %>%  ggplot(aes(fill=type, y=sum, x=as.factor(month))) + 
+#     geom_bar(position="stack", stat="identity") + 
+#     scale_fill_manual(values = c("others_total" = "orange","perks_total" = "red", "wage"= "blue"))
+# 
+# #wage, perks_total e others_total
+# 
+# dados_filtrados %>%
+#   filter(aid == "trt13", month == 1) %>%
+#   ggplot(aes(x=aid, y=income_total)) + 
+#   geom_violin() + 
+#   ggbeeswarm::geom_beeswarm(shape=16, alpha= 0.5,position=position_jitter(0.2))
 ```
+
+
 
 
 
