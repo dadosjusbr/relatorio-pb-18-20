@@ -13,6 +13,10 @@ output:
 library(here)
 library(tidyverse)
 dados = read_csv(here("dados/employees.csv"))
+
+dados_filtrados <- dados %>% 
+          filter(income_total > 0 & wage > 0 & perks_total > 0 & others_total > 0 & others_eventualbenefits > 0, others_positionoftrust > 0 & discounts_prevcontribution > 0 ) 
+# dados_filtrados %>% summary()
 ```
 
 A lei de número 12.527, também conhecida como lei da transparência, foi criada em 18 de novembro de 2011. Essa lei tem como objetivo principal exigir que os órgãos integrantes da administração direta dos poderes Executivo, Legislativo, e Judiciário disponibilizem seus dados financeiros de forma pública e acessível para toda a população brasileira.
@@ -31,7 +35,7 @@ As remunerações¹ incluem valores que vão além do salário². Os conhecidos 
 
 ## Paraíba
 
-No estado da Paraíba temos três tribunais. São eles: Tribunal de Justiça da Paraíba, Tribunal Regional Eleitoral da Paraíba (TRE), Tribunal Regional do Trabalho 13º Região (TRT13).
+No estado da Paraíba temos três tribunais. São eles: Tribunal de Justiça da Paraíba, Tribunal Regional Eleitoral da Paraíba (TRE) e Tribunal Regional do Trabalho 13º Região (TRT13).
 No mês mais recente que temos dados disponíveis (outubro) o TRE apresentava um total de 801 funcionários e o no TRT13 são 1544.
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
@@ -47,26 +51,74 @@ dados %>%
 
 
 ### TRT13
-O TRT13 atualmente tem um total de 1544 funcionários. A média salarial no ano de 2019 é de 19.673,6 R$. 
+O TRT13 atualmente tem um total de 1544 funcionários. A remuneração mediana no ano de 2019 foi de 24.290,00 R\$. Enquanto a máxima foi de 217.600,00 R$ e o mínimo de 10.550,00 R\$.
+No ano de 2018 tivemos uma remuneração mediana de 22.710,00 R\$. Enquanto a máxima é de 64.040,00 R\$ e o mínimo de 9.489,00 R$.
 
+No ano de 2019 tivemos a seguinte distribuição de remunerações.
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-trt13 <- dados %>% 
+dados_filtrados %>% 
+  filter(aid == "trt13") %>% 
   filter(year == 2019) %>% 
-  filter(aid == "trt13")
-mean(trt13$income_total)
+  ggplot(aes(income_total)) + 
+  theme(axis.text.x = element_text(angle = -60)) +
+  geom_histogram(binwidth=5000) + 
+  labs(y = "Total de funcionários", x = "Remuneração Total") + 
+  facet_wrap(~month)
+```
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+
+resumo_trt13_2019 <- dados_filtrados %>% 
+  filter(year == 2019) %>% 
+  filter(aid == "trt13") %>% 
+  pull(income_total) %>% 
+  summary()
+
+resumo_trt13_2018 <- dados_filtrados %>% 
+  filter(year == 2018) %>% 
+  filter(aid == "trt13") %>% 
+  pull(income_total) %>% 
+  summary()
+```
+
+
+## TRE
+
+O TRE atualmente tem um total de 801 funcionários. A remuneração mediana no ano de 2019 foi de 20.920,00 R\$. Enquanto a máxima foi de 50.360,00 R$ e o mínimo de 3.827,00 R\$.
+No ano de 2018 tivemos uma remuneração mediana de 22.900,00 R\$. Enquanto a máxima é de 66.290,00 R\$ e o mínimo de 8.780,00 R$.
+
+No ano de 2019 tivemos a seguinte distribuição de remunerações.
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+dados_filtrados %>% 
+  filter(aid == "trepb") %>% 
+  filter(year == 2019) %>% 
+  ggplot(aes(income_total)) + 
+  theme(axis.text.x = element_text(angle = -60)) +
+  geom_histogram(binwidth=5000) + 
+  labs(y = "Total de funcionários", x = "Remuneração Total") + 
+  facet_wrap(~month)
+
 ```
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-dados %>%
-    filter(aid == "trepb") %>%
-    filter(year == 2019) %>% 
-    filter(month == 10) %>% 
-    ggplot(aes(x=aid, y=income_total)) + 
-    geom_violin() +
-    geom_jitter(shape=16, position=position_jitter(0.2), alpha= 0.5)
+
+resumo_tre_2019 <- dados_filtrados %>% 
+  filter(year == 2019) %>% 
+  filter(aid == "trepb") %>% 
+  pull(income_total) %>% 
+  summary()
+
+resumo_tre_2018 <- dados_filtrados %>% 
+  filter(year == 2018) %>% 
+  filter(aid == "trepb") %>% 
+  pull(income_total) %>% 
+  summary()
 ```
 
 
 
 
-![](https://avatars2.githubusercontent.com/u/17051677?s=200&v=4)
+
+<div class="logo">![](https://avatars2.githubusercontent.com/u/17051677?s=200&v=4)</div>
