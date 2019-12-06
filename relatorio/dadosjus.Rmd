@@ -15,8 +15,7 @@ library(tidyverse)
 dados = read_csv(here("dados/employees.csv"))
 
 dados_filtrados <- dados %>% 
-          filter(income_total > 0 & wage > 0 & perks_total > 0 & others_total > 0) 
-# dados_filtrados %>% summary()
+          filter(income_total > 0 & wage > 0 & perks_total > 0 & others_total > 0)
 ```
 
 A lei de número 12.527, também conhecida como lei da transparência, foi criada em 18 de novembro de 2011. Essa lei tem como objetivo principal exigir que os órgãos integrantes da administração direta dos poderes Executivo, Legislativo, e Judiciário disponibilizem seus dados financeiros de forma pública e acessível para toda a população brasileira.
@@ -35,8 +34,10 @@ As remunerações¹ incluem valores que vão além do salário². Os conhecidos 
 
 # Paraíba
 
-No estado da Paraíba temos três tribunais. São eles: Tribunal de Justiça da Paraíba, Tribunal Regional Eleitoral da Paraíba (TRE) e Tribunal Regional do Trabalho 13º Região (TRT13).
-No mês mais recente que temos dados disponíveis (outubro) o TRE apresentava um total de 801 funcionários e o no TRT13 são 1544.
+No estado da Paraíba temos três tribunais. São eles: Tribunal de Justiça da Paraíba (TJPB), Tribunal Regional Eleitoral da Paraíba (TRE) e Tribunal Regional do Trabalho 13º Região (TRT13). Ainda temos o Ministério Público da Paraíba (MPPB). 
+No mês mais recente que temos dados disponíveis (outubro) o TRE apresentava um total de **801** funcionários e o no TRT13 são **1544**.
+
+### São cerca de XXXX funcionários nos 4 órgãos paraibanos
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados %>% 
@@ -45,15 +46,53 @@ dados %>%
   group_by(aid) %>% 
   count() %>% 
   ggplot(aes(x=aid, y=n, fill=aid)) +
-  geom_bar(stat="identity")+theme_minimal() + scale_fill_brewer(palette = "Set2") + xlab("Órgão") + ylab("Total de funcionários") + labs(fill = "Tribunal") +
+  geom_bar(stat="identity")+theme_minimal() + scale_fill_brewer(palette = "Set2") + xlab("Órgão") + ylab("Total de funcionários") + labs(fill = "Tribunal", title = "Total de funcionários em cada tribunal em Out de 2019" ) +
   scale_fill_brewer(palette = "Set2") 
 ```
 
-
-
 ## TRT13
-O TRT13 atualmente tem um total de 1544 funcionários. A remuneração mediana no ano de 2019 foi de 24.290,00 R\$. Enquanto a máxima foi de 217.600,00 R$ e o mínimo de 10.550,00 R\$.
-No ano de 2018 tivemos uma remuneração mediana de 22.710,00 R\$. Enquanto a máxima é de 64.040,00 R\$ e o mínimo de 9.489,00 R$.
+O TRT13 atualmente tem um total de 1544 funcionários. A remuneração mediana no ano de 2019 foi de 18.525,00 R\$. Enquanto a máxima foi de 370.604,00 R\$ e o mínimo de 2.317,00 R\$.
+No ano de 2018 tivemos uma remuneração mediana de 17.717,00 R\$. Enquanto a máxima é de 168.570.040,00 R\$ e o mínimo de 2.139,00 R\$.
+
+### Servidores são maioria no TRT13 e quantidade de pensionista e servidores é quase igual
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+# load library
+library(ggplot2)
+
+# Create test data.
+data <- data.frame(
+  category=c("Membro", "Pensionista", "Servidor"),
+  count=c(98, 107, 1339)
+)
+ 
+# Compute percentages
+data$fraction <- data$count / sum(data$count)
+
+# Compute the cumulative percentages (top of each rectangle)
+data$ymax <- cumsum(data$fraction)
+
+# Compute the bottom of each rectangle
+data$ymin <- c(0, head(data$ymax, n=-1))
+
+# Compute label position
+data$labelPosition <- (data$ymax + data$ymin) / 2
+
+# Compute a good label
+data$label <- paste0(data$category, "\n value: ", data$count)
+
+# Make the plot
+ggplot(data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
+  geom_rect() +
+ # geom_text( x=1, aes(y=labelPosition, label=label, color=category), size=4) + # x here controls label position (inner / outer)
+  scale_fill_brewer(palette = "Set2") + theme_minimal() +
+  scale_color_brewer(palette = "Set2") +
+  coord_polar(theta="y") +
+  xlim(c(-1, 4)) +
+  theme_void() + 
+  labs(fill = "Tipo de funcionário")
+  #theme(legend.position = "none")
+```
+Temos **1339** servidores, **98** membros e **107** pensionistas.
 
 ### Gastos com 'outros' são maiores que os de salários em alguns meses
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
@@ -74,18 +113,47 @@ bar_chart_trt_2019 %>%
     scale_y_continuous(labels = scales::comma)
 
 ```
+Nos meses de janeiro e dezembro o gastos com 'outros' são maiores ou quase iguais aos de salários. 
 
+
+### O Salário médio de um membro é o dobro do salário médio de um servidor
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 #Distribuição dos salários
 dados_filtrados %>%
-  filter(aid == "trt13" & month == 1 & year == 2019) %>%
-  ggplot(aes(x=aid, y=income_total, color =aid)) +
+  filter(year == 2019 & month == 10  & aid == "trt13") %>%
+  ggplot(aes(x=type, y=income_total, color=type)) +
   geom_violin() +
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_beeswarm(shape=16, alpha= 0.5,position=position_jitter(0.2)) + theme(legend.position = "none") + labs(x="", y = "Remuneração", title = "Distribuição das remunerações do TRT13 em Janeiro de 2019")
+  ggbeeswarm::geom_beeswarm(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do TRT13 em Outubro de 2019") 
 ```
+O salário mediano em 2019 para um sevidor foi de **18.221,00 R\$**. Já para membros foi de **43.425,00 R\$**.
 
+
+### A maior remuneração da história do TRT13 
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+dados_filtrados %>% 
+  filter(aid == "trt13" & year == 2019 & month == 5) %>% 
+  ggplot(aes(x=" Maio", y=income_total, color = aid )) +
+  ggbeeswarm::geom_quasirandom(alpha=0.6) + 
+  theme_minimal() + 
+  scale_color_brewer(palette = "Set2") + theme(legend.position = "none") + labs(x ="", y = "Remunerção Total") + scale_y_continuous(labels =        scales::comma) + 
+  stat_summary(fun.y = max, colour = "darkorange", geom = "point", size = 4)
+```
+Em maio de 2019 um Analista Judiciário recebeu um total de de **370.603,00 R\$**
+
+### Distribuição das remunerações no ano de 2019
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+dados_filtrados %>% 
+  filter(aid == "trt13", year == 2019) %>% 
+  ggplot(aes(x = income_total/1000, y = month, color = "trt13")) +  
+  theme_minimal() + 
+  scale_color_brewer(palette = "Set2") +
+  geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 11, by = 1)) + scale_x_continuous(labels = scales::comma, trans   = "log",breaks=c(0, 10, 70, 350)) + theme(legend.position = "none") + labs(x = "Valor da remuneração (em milhares R$)", y = "Mês", title = "Distribuição das remuneração em 2019") + 
+  geom_point(aes(x = 18.5), size = 4, color = "#111111", shape = 124) +
+   annotate("text", label = "Remunerção mediana de 2019", x = 47, y = 11.6, color = "#111111") 
+```
 
 ## TRE
 
@@ -110,17 +178,19 @@ bar_chart_tre_2019 %>%
     labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do TRE em 2018" ) +
     scale_y_continuous(labels = scales::comma)
 ```
+Nos meses de janeiro, novembro e dezembro o gastos com 'outros' são maiores ou quase iguais aos de salários.
+
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 #Distribuição dos salários
 dados_filtrados %>%
   filter(aid == "trepb" & month == 1 & year == 2019) %>%
-  ggplot(aes(x=aid, y=income_total, color =aid)) +
+  ggplot(aes(x=aid, y=income_total, color = aid)) +
   geom_violin() +
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_beeswarm(shape=20, alpha= 0.5,position=position_jitter(0.2)) + theme(legend.position = "none") + labs(x="", y = "Remuneração", title = "Distribuição das remunerações do TRE em Janeiro de 2019")
+  ggbeeswarm::geom_beeswarm(shape=10, alpha= 0.5,position=position_jitter(0.5)) + theme(legend.position = "none") + labs(x="", y = "Remuneração",   title = "Distribuição das remunerações do TRE em Janeiro de 2019")
+  
 ```
-
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 ## JUNK CODE:
@@ -190,11 +260,60 @@ dados_filtrados %>%
 #   ggplot(aes(x=aid, y=income_total)) + 
 #   geom_violin() + 
 #   ggbeeswarm::geom_beeswarm(shape=16, alpha= 0.5,position=position_jitter(0.2))
+
+## Plotar quantidade de servidores, pensionista e magistrados : 
+# dados %>% 
+#   filter(year == 2019) %>% 
+#   filter(month == 10) %>% 
+#   group_by(aid, type) %>%
+#   count() %>% 
+#   ggplot(aes(x=aid, y=n, fill=type)) +
+#   geom_bar(stat="identity")+theme_minimal() + scale_fill_brewer(palette = "Set2") + xlab("Órgão") + ylab("Total de funcionários") + labs(fill = "Tribunal") +
+#   scale_fill_brewer(palette = "Set2") 
+
+# dados_filtrados %>% 
+#   filter(aid == "trt13", year == 2019) %>% 
+#   ggplot(aes(x = income_total/1000, y = month, color = "trt13")) +  
+#   theme_minimal() + 
+#   scale_color_brewer(palette = "Set2") +
+#   geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 11, by = 1)) + scale_x_continuous(labels = scales::comma, trans   = "log",breaks=c(0, 10, 70, 350)) + theme(legend.position = "none") + labs(x = "Valor da remuneração (em milhares R$)", y = "Mês", title = "Distribuição das remuneração em 2019") + 
+#   geom_point(aes(x = 24.3), size = 4, color = "#111111", shape = 124) +
+#    annotate("text", label = "Remunerção mediana de 2019", x = 60, y = 11.3, color = "#111111") 
+# 
+# dados_filtrados %>% 
+#   filter(aid == "trt13", year == 2019) %>% 
+#   ggplot(aes(x = income_total/1000, y = month, color = "trt13")) +  
+#   theme_minimal() + 
+#   scale_color_brewer(palette = "Set2") +
+#   geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 11, by = 1)) + scale_x_continuous(labels = scales::comma, trans   = "log",breaks=c(0, 10, 70, 350)) + theme(legend.position = "none") + labs(x = "Valor da remuneração (em milhares R$)", y = "Mês", title = "Distribuição das remuneração em 2019") 
+# 
+# dados_filtrados %>% 
+#   filter(aid == "trt13", year == 2019) %>% 
+#   ggplot(aes(x = income_total, y = month, color = "trt13")) +  
+#   theme_minimal() + 
+#   scale_color_brewer(palette = "Set2") +
+#   geom_point(shape = 124, size = 5, alpha=0.3) + scale_y_continuous(breaks=seq(1, 11, by = 1)) + scale_x_continuous(labels = scales::comma, trans = "log",breaks=c(0, 10000, 20000, 35000, 50000, 80000, 150000, 250000)) + theme(legend.position = "none") + labs(x = "Valor da remuneração", y = "Mês")
+
+# library(ggwordcloud)
+# 
+# ala <- dados_filtrados %>% 
+#   filter(year == 2019, aid == "trt13", month == 10) %>% 
+#   group_by(workplace) %>% 
+#   count()
+# 
+# ala %>% 
+#   ggplot(aes(label = workplace, size = n)) +
+#   geom_text_wordcloud_area(area_corr_power = 1 ) +
+#   scale_size_area(max_size = 25) +
+#   theme_minimal()
+
 ```
 
 
-
-
+# Dúvidas
+ - Os pensionistas só apararecem se eu tirar o filtro de incometotal > 0 devo deixar esse filtro ou não?
+ - Usar o income_total ou fazendo o calculo dos descontos?
+ - Barras ou donut ?
 
 
 
