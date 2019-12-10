@@ -1,21 +1,25 @@
 ---
-title: "DadosJus"
+title: "DadosJus: Libertando dados do Judiciário Brasileiro"
+
 output:
   prettydoc::html_pretty:
     theme: cayman
     css: '/home/david/mppb/entrega-relatorio/dadosjus/stylesheets/prettydoc-cayman.css'
     highlight: github
     df_print: paged
-    
 ---
 
 ```{r  echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 library(here)
 library(tidyverse)
+
+options(scipen=999)
+
 dados = read_csv(here("dados/employees.csv"))
 
 dados_filtrados <- dados %>% 
-          filter(income_total > 0 & wage > 0 & perks_total > 0 & others_total > 0)
+          filter(income_total >= 0 & wage >= 0 & perks_total >= 0 & others_total >= 0 & discounts_total >= 0)
+
 ```
 
 A lei de número 12.527, também conhecida como lei da transparência, foi criada em 18 de novembro de 2011. Essa lei tem como objetivo principal exigir que os órgãos integrantes da administração direta dos poderes Executivo, Legislativo, e Judiciário disponibilizem seus dados financeiros de forma pública e acessível para toda a população brasileira.
@@ -28,33 +32,88 @@ O DadosJus tem como objetivo realizar o processo de libertação dos dados de ga
 # Sobre os dados
 As remunerações¹ incluem valores que vão além do salário². Os conhecidos auxílios ou indenizações, são gastos eventuais que podem constituir as remunerações. Auxílios como alimentação, pré escolar, saúde, natalidade, moradia e ajuda de custo, são exemplos de indenizações que podem ser recebidas por funcionários dos tribunais e ministérios públicos do Brasil
 
-¹Remuneração: é a soma do salário mais outras vantagens (indenizações e auxílios). 
+* ¹Remuneração: é a soma do salário mais outras vantagens (indenizações e auxílios). 
 
-²Salário: valor recebido de acordo com a prestação de serviços, em decorrência do contrato de trabalho.
+* ²Salário: valor recebido de acordo com a prestação de serviços, em decorrência do contrato de trabalho.
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+n_funcionarios_mppb <- dados_filtrados %>% 
+  filter(year == 2019 & month == 10 & aid == "mppb") %>% 
+  group_by(aid) %>% 
+  count() %>% 
+  pull(n)
+
+n_funcionarios_trt13 <- dados_filtrados %>% 
+  filter(year == 2019 & month == 10 & aid == "trt13") %>% 
+  group_by(aid) %>% 
+  count() %>% 
+  pull(n)
+
+n_funcionarios_trepb <- dados_filtrados %>% 
+  filter(year == 2019 & month == 10 & aid == "trepb") %>% 
+  group_by(aid) %>% 
+  count() %>% 
+  pull(n)
+```
+
 
 # Paraíba
 
 No estado da Paraíba temos três tribunais. São eles: Tribunal de Justiça da Paraíba (TJPB), Tribunal Regional Eleitoral da Paraíba (TRE) e Tribunal Regional do Trabalho 13º Região (TRT13). Ainda temos o Ministério Público da Paraíba (MPPB). 
-No mês mais recente que temos dados disponíveis (outubro) o TRE apresentava um total de **801** funcionários e o no TRT13 são **1544**.
+Na nossa análise mais recente (out/2019), o TRE apresentava um total de **`r n_funcionarios_trepb`**. funcionários e o no TRT13 são **`r n_funcionarios_trt13`**. No MPPB temos **`r n_funcionarios_mppb`**.
 
 ### São cerca de XXXX funcionários nos 4 órgãos paraibanos
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-dados %>% 
-  filter(year == 2019) %>% 
-  filter(month == 10) %>% 
+dados_filtrados %>% 
+  filter(year == 2019 & month == 10) %>% 
   group_by(aid) %>% 
   count() %>% 
-  ggplot(aes(x=aid, y=n, fill=aid)) +
-  geom_bar(stat="identity")+theme_minimal() + scale_fill_brewer(palette = "Set2") + xlab("Órgão") + ylab("Total de funcionários") + labs(fill = "Tribunal", title = "Total de funcionários em cada tribunal em Out de 2019" ) +
-  scale_fill_brewer(palette = "Set2") 
+  ggplot(aes(x=aid, y=n, fill=aid), colour =  'black') +
+  geom_bar(stat="identity") + theme_minimal() + scale_fill_brewer(palette = "Set2") + xlab("Órgão") + ylab("Total de funcionários") + labs(fill = "Tribunal", title = "Total de funcionários em cada tribunal em Out de 2019" ) 
+
 ```
 
 ## TRT13
-O TRT13 atualmente tem um total de 1544 funcionários. A remuneração mediana no ano de 2019 foi de 18.525,00 R\$. Enquanto a máxima foi de 370.604,00 R\$ e o mínimo de 2.317,00 R\$.
-No ano de 2018 tivemos uma remuneração mediana de 17.717,00 R\$. Enquanto a máxima é de 168.570.040,00 R\$ e o mínimo de 2.139,00 R\$.
 
-### Servidores são maioria no TRT13 e quantidade de pensionista e servidores é quase igual
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+mediana_salarial_2019_trt13 <- dados_filtrados %>% 
+  filter(year == 2019, aid == "trt13") %>% 
+  pull(income_total) %>% 
+  median()
+
+max_salarial_2019_trt13 <- dados_filtrados %>% 
+  filter(year == 2019, aid == "trt13") %>% 
+  pull(income_total) %>% 
+  max()
+
+min_salarial_2019_trt13 <- dados_filtrados %>% 
+  filter(year == 2019, aid == "trt13") %>% 
+  pull(income_total) %>% 
+  min()
+
+mediana_salarial_2018_trt13 <- dados_filtrados %>% 
+  filter(year == 2018, aid == "trt13") %>% 
+  pull(income_total) %>% 
+  median()
+
+max_salarial_2018_trt13 <- dados_filtrados %>% 
+  filter(year == 2018, aid == "trt13") %>% 
+  pull(income_total) %>% 
+  max()
+
+min_salarial_2018_trt13 <- dados_filtrados %>% 
+  filter(year == 2018, aid == "trt13") %>% 
+  pull(income_total) %>% 
+  min()
+
+```
+
+O TRT13 atualmente tem um total de **`r n_funcionarios_trt13`** funcionários. A remuneração mediana no ano de 2019 foi de R\$ **`r mediana_salarial_2019_trt13`** . Enquanto a máxima foi de R\$ **`r max_salarial_2019_trt13`** e o mínimo de R$ **`r min_salarial_2019_trt13`**.
+
+No ano de 2018 tivemos uma remuneração mediana de R\$ **`r mediana_salarial_2018_trt13`**. Enquanto a máxima é de R\$ **`r max_salarial_2018_trt13`** e o mínimo de R\$ **`r min_salarial_2018_trt13`**.
+
+### Servidores são maioria no TRT13 e quantidade de pensionista e membros é quase igual
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 # load library
 library(ggplot2)
@@ -83,29 +142,30 @@ data$label <- paste0(data$category, "\n value: ", data$count)
 # Make the plot
 ggplot(data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
   geom_rect() +
- # geom_text( x=1, aes(y=labelPosition, label=label, color=category), size=4) + # x here controls label position (inner / outer)
+  geom_text(x=4.9, aes(y=labelPosition, label=label, color=category), size=4) + # x here controls label position (inner / outer)
   scale_fill_brewer(palette = "Set2") + theme_minimal() +
   scale_color_brewer(palette = "Set2") +
   coord_polar(theta="y") +
   xlim(c(-1, 4)) +
   theme_void() + 
-  labs(fill = "Tipo de funcionário")
-  #theme(legend.position = "none")
+  labs(fill = "Tipo de funcionário") +
+  theme(legend.position = "none")
 ```
-Temos **1339** servidores, **98** membros e **107** pensionistas.
+São **1339** servidores, **98** membros e **107** pensionistas.
 
-### Gastos com 'outros' são maiores que os de salários em alguns meses
+### Gastos com “outros” superam os salários em alguns meses
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 # Stacked barchart para o trt13
-bar_chart_trt_2019 <- dados_filtrados %>%
+bar_chart_trt_2018 <- dados_filtrados %>%
   filter(aid == "trt13" & year == 2018) %>% 
-  gather(key="type", value = "value", wage, perks_total, others_total ) %>% 
+  mutate(`Salário` = wage, `Indenizações` = perks_total, `Outros` = others_total) %>% 
+  gather(key="type", value = "value", `Salário`, `Indenizações`, `Outros`) %>% 
   select(name, role, value, type, month) %>% 
   group_by(month, type) %>% 
   summarise(sum = sum(value))
 
 
-bar_chart_trt_2019 %>%
+bar_chart_trt_2018 %>%
     ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
     geom_bar(position="stack", stat="identity") +
     scale_fill_brewer(palette = "Set2") + theme_minimal() +
@@ -115,8 +175,26 @@ bar_chart_trt_2019 %>%
 ```
 Nos meses de janeiro e dezembro o gastos com 'outros' são maiores ou quase iguais aos de salários. 
 
-
 ### O Salário médio de um membro é o dobro do salário médio de um servidor
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+salario_medio_servidor_2019 <- dados_filtrados %>% 
+   filter(year == 2019, aid == "trt13", type == "servidor") %>% 
+   pull(income_total) %>% 
+   mean()
+
+salario_membro_2019 <- dados_filtrados %>% 
+   filter(year == 2019, aid == "trt13", type == "membro") %>% 
+   pull(income_total) %>% 
+   mean()
+
+salario_pensionista_2019 <- dados_filtrados %>% 
+   filter(year == 2019, aid == "trt13", type == "pensionista") %>% 
+   pull(income_total) %>% 
+   mean()
+```
+
+
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 #Distribuição dos salários
 dados_filtrados %>%
@@ -124,13 +202,13 @@ dados_filtrados %>%
   ggplot(aes(x=type, y=income_total, color=type)) +
   geom_violin() +
   theme_minimal() + 
+  scale_y_log10(labels = scales::comma, breaks=c(5000, 10000, 20000, 35000, 50000, 80000, 150000, 250000)) + 
   scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_beeswarm(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do TRT13 em Outubro de 2019") 
+  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do TRT13 em Outubro de 2019") 
 ```
-O salário mediano em 2019 para um sevidor foi de **18.221,00 R\$**. Já para membros foi de **43.425,00 R\$**.
+O salário mediano em 2019 para um sevidor foi de R$ **`r salario_medio_servidor_2019`** . Já para membros foi de R\$ **`r salario_membro_2019`**. Enquanto para pensionistas é de R\$ **`r salario_pensionista_2019`**
 
-
-### A maior remuneração da história do TRT13 
+### Analista Judiciário recebe 370.603,00 R\$ em maio de 2019
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
   filter(aid == "trt13" & year == 2019 & month == 5) %>% 
@@ -228,6 +306,10 @@ O cargo de Analista Judiciário recebe em média **23.401,00 R\$**. Enquanto o T
  
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 library(stringr)
+
+alalal <-  dados_filtrados %>% 
+  filter(year == 2019 & month == 10  & aid == "trepb")
+
 
 dados_normalized_role  %>% 
   filter(year == 2019 & month == 10  & aid == "trepb") %>%
