@@ -9,7 +9,7 @@ output:
     df_print: paged
 ---
 
-```{r  echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 library(here)
 library(tidyverse)
 
@@ -58,12 +58,11 @@ n_funcionarios_trepb <- dados_filtrados %>%
 
 
 # Paraíba
+No estado da Paraíba existem três tribunais. São eles: Tribunal de Justiça da Paraíba (TJPB), Tribunal Regional Eleitoral da Paraíba (TRE) e Tribunal Regional do Trabalho 13º Região (TRT13). Além destes tribunais existe o Ministério Público da Paraíba (MPPB).
 
-No estado da Paraíba temos três tribunais. São eles: Tribunal de Justiça da Paraíba (TJPB), Tribunal Regional Eleitoral da Paraíba (TRE) e Tribunal Regional do Trabalho 13º Região (TRT13). Ainda temos o Ministério Público da Paraíba (MPPB). 
-Na nossa análise mais recente (out/2019), o TRE apresentava um total de **`r n_funcionarios_trepb`**. funcionários e o no TRT13 são **`r n_funcionarios_trt13`**. No MPPB temos **`r n_funcionarios_mppb`**.
+Na nossa análise mais recente (out/2019), o TRE apresentava um total de **`r n_funcionarios_trepb`**. funcionários e o no TRT13 são **`r n_funcionarios_trt13`**. No MPPB são **`r n_funcionarios_mppb`**.
 
-### São cerca de XXXX funcionários nos 4 órgãos paraibanos
-
+### Os 3 orgãos paraibanos possuem 3617 funcionários
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
   filter(year == 2019 & month == 10) %>% 
@@ -80,32 +79,38 @@ dados_filtrados %>%
 mediana_salarial_2019_trt13 <- dados_filtrados %>% 
   filter(year == 2019, aid == "trt13") %>% 
   pull(income_total) %>% 
-  median()
+  median() %>% 
+  round(2)
 
 max_salarial_2019_trt13 <- dados_filtrados %>% 
   filter(year == 2019, aid == "trt13") %>% 
   pull(income_total) %>% 
-  max()
+  max()  %>% 
+  round(2)
 
 min_salarial_2019_trt13 <- dados_filtrados %>% 
   filter(year == 2019, aid == "trt13") %>% 
   pull(income_total) %>% 
-  min()
+  min()  %>% 
+  round(2)
 
 mediana_salarial_2018_trt13 <- dados_filtrados %>% 
   filter(year == 2018, aid == "trt13") %>% 
   pull(income_total) %>% 
-  median()
+  median()  %>% 
+  round(2)
 
 max_salarial_2018_trt13 <- dados_filtrados %>% 
   filter(year == 2018, aid == "trt13") %>% 
   pull(income_total) %>% 
-  max()
+  max()  %>% 
+  round(2)
 
 min_salarial_2018_trt13 <- dados_filtrados %>% 
   filter(year == 2018, aid == "trt13") %>% 
   pull(income_total) %>% 
-  min()
+  min()  %>% 
+  round(2)
 
 ```
 
@@ -125,7 +130,7 @@ data <- data.frame(
 )
  
 # Compute percentages
-data$fraction <- data$count / sum(data$count)
+data$fraction <- (data$count / sum(data$count)) * 100
 
 # Compute the cumulative percentages (top of each rectangle)
 data$ymax <- cumsum(data$fraction)
@@ -137,23 +142,29 @@ data$ymin <- c(0, head(data$ymax, n=-1))
 data$labelPosition <- (data$ymax + data$ymin) / 2
 
 # Compute a good label
-data$label <- paste0(data$category, "\n value: ", data$count)
+data$label <- paste0(data$category, "\n", round(data$fraction, digits = 0), "%")
 
 # Make the plot
 ggplot(data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
   geom_rect() +
-  geom_text(x=4.9, aes(y=labelPosition, label=label, color=category), size=4) + # x here controls label position (inner / outer)
+  geom_text(x=3.5, aes(y=labelPosition, label=label, color=category), color = "white", size=3.2) + # x here controls label position (inner / outer)
   scale_fill_brewer(palette = "Set2") + theme_minimal() +
   scale_color_brewer(palette = "Set2") +
   coord_polar(theta="y") +
-  xlim(c(-1, 4)) +
+  xlim(c(0.6, 4)) +
   theme_void() + 
   labs(fill = "Tipo de funcionário") +
   theme(legend.position = "none")
 ```
 São **1339** servidores, **98** membros e **107** pensionistas.
 
-### Gastos com “outros” superam os salários em alguns meses
+* Membros: é uma classificação mais ampla que abrange todo o tipo agente público que "representa" o Poder Judiciário ou o Ministério Público.
+
+* Servidores: Um servidor público é um funcionário da administração pública, que possui um vínculo de trabalho com órgãos que fazem parte do Estado.
+
+* Pensionista: são beneficiários de pensão por morte de algum funcionário do poder público.
+
+### Gastos com “outros” são quase iguais aos de salários em alguns meses
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 # Stacked barchart para o trt13
 bar_chart_trt_2018 <- dados_filtrados %>%
@@ -162,7 +173,7 @@ bar_chart_trt_2018 <- dados_filtrados %>%
   gather(key="type", value = "value", `Salário`, `Indenizações`, `Outros`) %>% 
   select(name, role, value, type, month) %>% 
   group_by(month, type) %>% 
-  summarise(sum = sum(value))
+  summarise(sum = sum(value)) 
 
 
 bar_chart_trt_2018 %>%
@@ -170,28 +181,47 @@ bar_chart_trt_2018 %>%
     geom_bar(position="stack", stat="identity") +
     scale_fill_brewer(palette = "Set2") + theme_minimal() +
     labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do TRT13 em 2018" ) +
-    scale_y_continuous(labels = scales::comma)
-
+    scale_y_continuous(labels = scales::comma) 
 ```
-Nos meses de janeiro e dezembro o gastos com 'outros' são maiores ou quase iguais aos de salários. 
+Nos meses de janeiro e dezembro de 2018 os gastos com 'outros' são quase iguais aos de salários. 
 
-### O Salário médio de um membro é o dobro do salário médio de um servidor
+O que são outros? Qualquer remuneração recebida por um funcionário que não seja proveniente de salário ou indenizações. Exemplos de outros são: **diárias, gratificações, remuneração por função de confiança, benefícios pessoais ou eventuais**
 
+O que são  indenizações? São valores especiais recebidos eventualmente. Exemplos de indenizações são: **auxílio alimentação, moradia, transporte, natalidade, pré-escolar e ajuda de custo.**
+
+Em janeiro: 
+
+* Outros: R$ 20.026.385,00
+
+* Salário: R$ 20.946.094,00
+
+Em dezembro: 
+
+* Outros: R$ 20,786,508,00
+
+* Salário: R$ 21.652.908,00
+
+Isso ocorre pois muitos funcionários recebem altos valores de **gratificação natalina e pagamentos retroativos** em dezembro. Já em janeiro temos os pagamentos de **abono constitucional de ⅓ de férias e antecipação de gratificação natalina**. 
+
+### O Salário médio de um membro é R$ 34.922,18
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 salario_medio_servidor_2019 <- dados_filtrados %>% 
    filter(year == 2019, aid == "trt13", type == "servidor") %>% 
    pull(income_total) %>% 
-   mean()
+   mean()  %>% 
+   round(2)
 
 salario_membro_2019 <- dados_filtrados %>% 
    filter(year == 2019, aid == "trt13", type == "membro") %>% 
    pull(income_total) %>% 
-   mean()
+   mean()  %>% 
+   round(2)
 
 salario_pensionista_2019 <- dados_filtrados %>% 
    filter(year == 2019, aid == "trt13", type == "pensionista") %>% 
    pull(income_total) %>% 
-   mean()
+   mean()  %>% 
+   round(2)
 ```
 
 
@@ -206,21 +236,34 @@ dados_filtrados %>%
   scale_color_brewer(palette = "Set2") +
   ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do TRT13 em Outubro de 2019") 
 ```
-O salário mediano em 2019 para um sevidor foi de R$ **`r salario_medio_servidor_2019`** . Já para membros foi de R\$ **`r salario_membro_2019`**. Enquanto para pensionistas é de R\$ **`r salario_pensionista_2019`**
+O salário médio em 2019 para um sevidor foi de R$ **`r salario_medio_servidor_2019`** . Já para membros foi de R\$ **`r salario_membro_2019`**. Enquanto para pensionistas é de R\$ **`r salario_pensionista_2019`**
 
-### Analista Judiciário recebe 370.603,00 R\$ em maio de 2019
+### Valores que chamam atenção
+
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
-  filter(aid == "trt13" & year == 2019 & month == 5) %>% 
-  ggplot(aes(x=" Maio", y=income_total, color = aid )) +
+  filter(aid == "trt13" & year == 2019) %>% 
+  ggplot(aes(x=" ", y=income_total, color = aid )) +
   ggbeeswarm::geom_quasirandom(alpha=0.6) + 
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") + theme(legend.position = "none") + labs(x ="", y = "Remunerção Total") + scale_y_continuous(labels =        scales::comma) + 
-  stat_summary(fun.y = max, colour = "darkorange", geom = "point", size = 4)
+  stat_summary(fun.y = max, colour = "#F25E4B", geom = "point", size = 4) +
+  geom_point(aes(y=217617.49), colour ="#F25E4B", size = 4 ) +
+  geom_point(aes(y=176550.59), colour ="#F25E4B", size = 4 ) +
+  geom_point(aes(y=138863.90), colour ="#F25E4B", size = 4 ) +
+  annotate("text", label = "Analista Judiciário inativo em maio", x = 1.25, y = 371000, color = "#111111") +
+  annotate("text", label = "Analista Judiciário ativo em junho", x = 1.25, y = 	217617.49, color = "#111111") +
+  annotate("text", label = "Analista Judiciário ativo em outubro", x = 1.25, y = 	176550.59, color = "#111111") + 
+  annotate("text", label = "Pensionista inativo em Novembro", x = 1.27, y = 	132090.61, color = "#111111")
 ```
-Em maio de 2019 um Analista Judiciário recebeu um total de de **370.603,00 R\$**
+Em maio de 2019 um Analista Judiciário recebeu um total de de **370.603,00 R\$**. Desse valor foi recebido R\$ 22.013,24 de salário, R$ 1.804,44 em indenizações. E em outros foi recebido um valor de **R\$ 346.785,00**, sendo em sua maior parte devido a **vantagens eventuais**. Outros analistas tem uma distribuição parecida. 
+O pensionista em sua remuneração maior parte é proveniente do salário.  
+
+* Vantagens eventuais podem ser: Abono constitucional de 1/3 de férias, indenização de férias, antecipação de férias, serviço extraordinário, substituição, pagamentos retroativos, além de outras desta natureza. Valores pagos a título de Adicional de Insalubridade ou de Periculosidade, Adicional Noturno.
 
 ### Distribuição das remunerações no ano de 2019
+
+A distribuição das remunerações em 2019 é bastante ampla, existem funcinários com remunerações acima de R\$ 350.000,00 e outros com remuneração abaixo de 5.000,00 R\$. A média salárial foi de **R$ 18.000,00**
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
@@ -228,14 +271,14 @@ dados_filtrados %>%
   ggplot(aes(x = income_total/1000, y = month, color = "trt13")) +  
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") +
-  geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 11, by = 1)) + scale_x_continuous(labels = scales::comma, trans   = "log",breaks=c(0, 10, 70, 350)) + theme(legend.position = "none") + labs(x = "Valor da remuneração (em milhares R$)", y = "Mês", title = "Distribuição das remuneração em 2019") + 
+  geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 11, by = 1)) + scale_x_continuous(labels = scales::comma, trans   = "log",breaks=c(0, 10, 18,50, 350)) + theme(legend.position = "none") + labs(x = "Valor da remuneração (em milhares R$)", y = "Mês", title = "Distribuição das remuneração em 2019") + 
   geom_point(aes(x = 18.5), size = 4, color = "#111111", shape = 124) +
-   annotate("text", label = "Remuneração mediana de 2019", x = 47, y = 11.6, color = "#111111") 
+   annotate("text", label = "Remuneração mediana de 2019", x = 3, y = 11.6, color = "#111111") 
 ```
 
-### Os Juizes tem as melhores remunerações, seguidos pelos Análistas Judiciários. 
+### Remunerações por cargo no TRT13 
 
-Os Juízes do TRT13 são os que apresentam as melhores remunerações no TRT13. Em segundo lugar temos os Analistas Judiciários. Em Terceiro os Técnico Judiciários. As categorias Sem Vínculo e Auxiliar Judiciário são minoria no TRT13 e apresentam as menores remunerações.
+Os Juízes do TRT13 são os que apresentam as melhores remunerações. Em segundo lugar estão os Analistas Judiciários. Em Terceiro os Técnico Judiciários. As categorias Sem Vínculo, Auxiliar Judiciárioe e Outros são minoria no TRT13 e apresentam as menores remunerações.
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 library(stringr)
@@ -249,19 +292,195 @@ dados_normalized_role <- dados_filtrados %>%
       str_detect(str_to_lower(role), "requisitado") ~ "Requisitado",
       str_detect(str_to_lower(role), "sem vínculo") ~ "Sem Vínculo",
       str_detect(str_to_lower(role), "tecnico judiciario") | str_detect(str_to_lower(role), "técnico judiciario") | str_detect(str_to_lower(role), "tecnico judiciário") | str_detect(str_to_lower(role), "técnico judiciário") ~ "Técnico Judiciário",
-      str_detect(str_to_lower(role), "auxiliar judiciário")  ~ "Auxiliar Judiciário"
+      str_detect(str_to_lower(role), "auxiliar judiciário")  ~ "Auxiliar Judiciário",
+      TRUE ~"Outros"
     )
   )
 
 dados_normalized_role  %>% 
-  filter(year == 2019 & month == 10  & aid == "trt13") %>%
+  filter(year == 2019 & month == 10  & aid == "trt13" & income_total < 60000) %>%
   ggplot(aes(x=normalized_role, y=income_total, color=normalized_role)) +
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") +
   ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.3)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Remunerações de acordo com os cargos em Out de 2019 no TRT13") + 
   coord_flip() + 
-  stat_summary(fun.y = median, colour = "#F25E4B", geom = "point", size = 1)
-  
+  scale_y_continuous(breaks= c(0,10000,20000,30000,40000,50000,60000)) +
+  stat_summary(fun.y = median, colour = "#F25E4B", geom = "point", size = 1) 
+```
+
+## MPPB
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+mediana_salarial_2019_mppb <- dados_filtrados %>% 
+  filter(year == 2019, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  median() %>% 
+  round(2)
+
+max_salarial_2019_mppb <- dados_filtrados %>% 
+  filter(year == 2019, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  max()  %>% 
+  round(2)
+
+min_salarial_2019_mppb <- dados_filtrados %>% 
+  filter(year == 2019, aid == "mpbb") %>% 
+  pull(income_total) %>% 
+  min()  %>% 
+  round(2)
+
+mediana_salarial_2018_mppb <- dados_filtrados %>% 
+  filter(year == 2018, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  median()  %>% 
+  round(2)
+
+max_salarial_2018_mpbb <- dados_filtrados %>% 
+  filter(year == 2018, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  max()  %>% 
+  round(2)
+
+min_salarial_2018_mppb <- dados_filtrados %>% 
+  filter(year == 2018, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  min()  %>% 
+  round(2)
+
+```
+
+O MPPB atualmente tem um total de **1295** funcionários.
+No ano de 2019 tivemos uma remuneração mediana de R\$ **`r mediana_salarial_2019_mppb`**. Enquanto a máxima é de R\$ **`r max_salarial_2019_mppb`** e o mínimo de R\$ 0.
+A remuneração mediana no ano de 2018 foi de R\$ **`r mediana_salarial_2018_mppb`** .Enquanto a máxima foi de R\$ **`r max_salarial_2018_mpbb`** e o mínimo de R\$ 0. 
+
+### Distribuição dos tipos de funcionários no MPPB
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+distribuição_dos_mppb <- dados_filtrados %>% 
+  filter(aid == "mppb" , month == 10) %>% 
+  group_by(type) %>% 
+  count() 
+```
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+# load library
+library(ggplot2)
+
+# Create test data.
+data2 <- data.frame(
+  category=c("Estagiário", "Membro", "Pensionista", "Servidor"),
+  count=c(77, 570, 155, 1798)
+)
+ 
+# Compute percentages
+data2$fraction <- (data2$count / sum(data2$count)) * 100
+
+# Compute the cumulative percentages (top of each rectangle)
+data2$ymax <- cumsum(data2$fraction)
+
+# Compute the bottom of each rectangle
+data2$ymin <- c(0, head(data2$ymax, n=-1))
+
+# Compute label position
+data2$labelPosition <- (data2$ymax + data2$ymin) / 2
+
+# Compute a good label
+data2$label <- paste0(data2$category, "\n", round(data2$fraction, digits = 0), "%")
+
+# Make the plot
+ggplot(data2, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
+  geom_rect() +
+  geom_text(x=3.5, aes(y=labelPosition, label=label, color=category), color = "white", size=2.7) + # x here controls label position (inner / outer)
+  scale_fill_brewer(palette = "Set2") + theme_minimal() +
+  scale_color_brewer(palette = "Set2") +
+  coord_polar(theta="y") +
+  xlim(c(0.6, 4)) +
+  theme_void() + 
+  labs(fill = "Tipo de funcionário") +
+  theme(legend.position = "none")
+```
+
+### Distribuição dos tipos dos gastos em 2018
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+
+bar_chart_mppb_2018 <- dados_filtrados %>%
+  filter( year == 2018 & aid == "mppb") %>% 
+  mutate(`Salário` = wage, `Indenizações` = perks_total, `Outros` = others_total) %>%
+  gather(key="type", value = "value", `Salário`, `Indenizações`, `Outros`) %>%
+  select(name, role, value, type, month) %>%
+  group_by(month, type) %>%
+  summarise(sum = sum(value))
+
+
+bar_chart_mppb_2018 %>%
+    ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_brewer(palette = "Set2") + theme_minimal() +
+    labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do MPPB em 2018" ) +
+    scale_y_continuous(labels = scales::comma) 
+```
+
+### Distribuição das remunerações dos funcionários de acordo com seu tipo 
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+#Distribuição dos salários
+dados_filtrados %>%
+  filter(year == 2019 & month == 10  & aid == "mppb") %>%
+  ggplot(aes(x=type, y=income_total, color=type)) +
+  theme_minimal() +  
+  scale_color_brewer(palette = "Set2") +
+  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do TRT13 em Outubro de 2019") 
+```
+
+### Valores  que chamaram atenção em 2019
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+dados_filtrados %>% 
+  filter(aid == "mppb", year == 2019) %>% 
+  ggplot(aes(x=" ", y=income_total, color = aid )) +
+  ggbeeswarm::geom_quasirandom(alpha=0.6) + 
+  theme_minimal() + 
+  scale_color_brewer(palette = "Set2") + theme(legend.position = "none") + labs(x ="", y = "Remunerção Total") + scale_y_continuous(labels =        scales::comma) +
+  stat_summary(fun.y = max, colour = "#F25E4B", geom = "point", size = 4) +
+  geom_point(aes(y=94951.30), colour ="#F25E4B", size = 4 ) +
+  # geom_point(aes(y=176550.59), colour ="#F25E4B", size = 4 ) +
+  # geom_point(aes(y=138863.90), colour ="#F25E4B", size = 4 ) +
+  annotate("text", label = "Procurador de justiça (jun/19) R$ 101.796,58", x = 1.32, y = 101796.58, color = "#111111") +
+  annotate("text", label = "Promotor de justiça (jun/19) R$ 94.951,30", x = 1.32, y = 	94951.30, color = "#111111") 
+  # annotate("text", label = "Analista Judiciário ativo em outubro", x = 1.25, y = 	176550.59, color = "#111111") + 
+  # annotate("text", label = "Pensionista inativo em Novembro", x = 1.27, y = 	132090.61, color = "#111111")
+```
+
+### Distribuição das remunerações em 2019
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+remuneracao_media_mppb_2019 <- dados_filtrados  %>% 
+  filter(aid == "mppb" & year == 2019) %>% 
+  pull(income_total) %>% 
+  mean() %>%
+  round(2)
+```
+
+
+A remuneração média em 2019 foi de  R\$ **`r remuneracao_media_mppb_2019`**
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+dados_filtrados %>% 
+  filter(aid == "mppb", year == 2018) %>% 
+  ggplot(aes(x = income_total, y = month, color = "trt13")) +  
+  theme_minimal() + 
+  scale_color_brewer(palette = "Set2") +
+  geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 11, by = 1)) + scale_x_continuous(labels = scales::comma) + theme(legend.position = "none") + labs(x = "Valor da remuneração", y = "Mês", title = "Distribuição das remuneração em 2019") + 
+  geom_point(aes(x = 15768), size = 4, color = "#111111", shape = 124) +
+   annotate("text", label = "Remuneração média de 2019", x = 18000, y = 13, color = "#111111") 
+```
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+cargos_mppb <- dados_filtrados %>% 
+  filter(aid == "mppb") %>% 
+  group_by(role) %>% 
+  count()
 ```
 
 ## TRE
@@ -274,10 +493,11 @@ No ano de 2018 tivemos uma remuneração mediana de 22.900,00 R\$. Enquanto a m�
 # Stacked barchart para o TRE
 bar_chart_tre_2019 <- dados_filtrados %>%
   filter(aid == "trepb" & year == 2018) %>% 
-  gather(key="type", value = "value", wage, perks_total, others_total ) %>% 
+  mutate(`Salário` = wage, `Indenizações` = perks_total, `Outros` = others_total) %>% 
+  gather(key="type", value = "value", `Salário`, `Indenizações`, `Outros`) %>% 
   select(name, role, value, type, month) %>% 
   group_by(month, type) %>% 
-  summarise(sum = sum(value))
+  summarise(sum = sum(value)) 
 
 bar_chart_tre_2019 %>%
     ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
@@ -285,9 +505,11 @@ bar_chart_tre_2019 %>%
     scale_fill_brewer(palette = "Set2") + theme_minimal() +
     labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do TRE em 2018" ) +
     scale_y_continuous(labels = scales::comma)
+
 ```
 Nos meses de janeiro, novembro e dezembro o gastos com 'outros' são maiores ou quase iguais aos de salários.
 
+### Distribuição das remunerações em jan de 2019
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 #Distribuição dos salários
 dados_filtrados %>%
@@ -296,8 +518,7 @@ dados_filtrados %>%
   geom_violin() +
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_beeswarm(shape=10, alpha= 0.5,position=position_jitter(0.5)) + theme(legend.position = "none") + labs(x="", y = "Remuneração",   title = "Distribuição das remunerações do TRE em Janeiro de 2019")
-  
+  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.5)) + theme(legend.position = "none") + labs(x="", y = "Remuneração",   title = "Distribuição das remunerações do TRE em Janeiro de 2019")
 ```
  
 ### Analistas Judiciários ganham em média 8.000,00 R$ a mais que Técnicos Judiciários 
@@ -316,7 +537,7 @@ dados_normalized_role  %>%
   ggplot(aes(x=normalized_role, y=income_total, color=normalized_role)) +
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.3)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Remunerações de acordo com os cargos em Out de 2019 no TREPB") + 
+  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.3)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Remunerações de acordo com os cargos em Out/2019 no TREPB") + 
   coord_flip() + 
   stat_summary(fun.y = median, colour = "#F25E4B", geom = "point", size = 1)
 ```
@@ -440,11 +661,11 @@ dados_normalized_role  %>%
 ```
 
 
-# Dúvidas
- - Os pensionistas só apararecem se eu tirar o filtro de incometotal > 0 devo deixar esse filtro ou não?
- - Usar o income_total ou fazendo o calculo dos descontos?
- - Barras ou donut ?
-
-
+# Trabalhos futuros
+ - Libertas dados do TJPB
+ - Estruturar melhor a plataformar para facilitar contribuições
+ - Criar um site para dispobilizar dados e análises
+ - Realizar monitoramento dos dados coletados
+ 
 
 <div class="logo">![](https://avatars2.githubusercontent.com/u/17051677?s=200&v=4)</div>
