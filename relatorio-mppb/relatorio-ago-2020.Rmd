@@ -1,0 +1,286 @@
+---
+title: "DadosJus: Libertando dados do Judiciário Brasileiro"
+
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    css: '../stylesheets/prettydoc-cayman.css'
+    highlight: github
+    df_print: paged
+---
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+library(here)
+library(tidyverse)
+
+options(scipen=999)
+
+dados = read_csv(here("dados/data.csv"))
+
+dados_filtrados <- dados %>% 
+          filter(income_total >= 0 & wage >= 0 & perks_total >= 0 & funds_total >= 0 & discounts_total >= 0)
+
+```
+# Paraíba
+## MPPB
+### Verificando colunas
+#### Agency ID
+Todas as linhas possuem um valor para a coluna **aid**
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+total <- dados_filtrados %>%
+  count(aid) %>%
+  pull(n)
+
+aid <- dados_filtrados %>%
+  filter(aid == "mppb") %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, aid)
+```
+#### Month
+O valor de **month** é maior que 0 e menor que 13 em todas as linhas (o json diz que o mínimo deve ser 0, e o máximo 12, possível erro)
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+count_month <- dados_filtrados %>%
+  filter(month > 0 && month < 13) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, count_month)
+```
+#### Year
+O valor de **year** é igual a 2020 em todas as linhas (o json diz que o mínimo deve ser 0, possível erro(?))
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+count_year <- dados_filtrados %>%
+  filter(year == 2020) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, count_year)
+```
+#### Name
+Todas as linhas possuem um valor para a coluna **name** 
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_names <- dados_filtrados %>%
+  filter(!is.null(name)) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, check_names)
+```
+#### Role
+Todas as linhas possuem um valor para a coluna **role**
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_roles <- dados_filtrados %>%
+  filter(!is.null(role)) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, check_roles)
+```
+#### Type
+As linhas da coluna **type**, segundo o json, devem ser de um dos seguintes tipos: "servidor", "membro", "pensionista" ou "indefinido".
+No entanto, os tipos presentes são: "servidor", "membro", "pensionista" e "estagiario".
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+distribuição_dos_mppb <- dados_filtrados %>% 
+  filter(aid == "mppb", month == 8) %>% 
+  group_by(type) %>% 
+  count()
+distribuição_dos_mppb %>%
+  knitr::kable()
+```
+
+Todas as linhas possuem um valor para a coluna **type**
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_types <- dados_filtrados %>%
+  filter(!is.null(type)) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, check_types)
+```
+
+##### TODO: Continuar com outras colunas
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+n_funcionarios_mppb <- dados_filtrados %>% 
+  filter(year == 2020 & month == 8 & aid == "mppb") %>% 
+  group_by(aid) %>% 
+  count() %>% 
+  pull(n)
+```
+
+## Análise Descritiva
+
+Em agosto de 2020 o MPPB apresentava um total de **`r n_funcionarios_mppb`** funcionários.
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+dados_filtrados %>% 
+  filter(year == 2020 & month == 8) %>% 
+  group_by(aid) %>% 
+  count() %>% 
+  ggplot(aes(x=aid, y=n, fill=aid), colour =  'black') +
+  geom_bar(stat="identity") + theme_minimal() + scale_fill_brewer(palette = "Set2") + xlab("Órgão") + ylab("Total de funcionários") + labs(fill = "Tribunal", title = "Total de funcionários do MPPB em Ago de 2020" ) 
+```
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+mediana_salarial_2020_mppb <- dados_filtrados %>% 
+  filter(year == 2020, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  median() %>% 
+  round(2)
+
+max_salarial_2020_mppb <- dados_filtrados %>% 
+  filter(year == 2020, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  max()  %>% 
+  round(2)
+
+min_salarial_2020_mppb <- dados_filtrados %>% 
+  filter(year == 2020, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  min()  %>% 
+  round(2)
+```
+
+No mes de agosto de 2020 a remuneração mediana foi de R\$ **`r mediana_salarial_2020_mppb`**, enquanto a máxima foi de R\$ **`r max_salarial_2020_mppb`** e a mínima de R\$ **`r min_salarial_2020_mppb`**.
+A remuneração mediana no ano de 2019 foi de R\$ **9129.19**, enquanto a máxima foi de R\$ **101796.58** e a mínima de R\$ **0**.
+
+
+### Distribuição dos tipos de funcionários no MPPB
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+distribuição_dos_mppb <- dados_filtrados %>% 
+  filter(aid == "mppb" , month == 8) %>% 
+  group_by(type) %>% 
+  count()
+
+num_estagiarios_mppb <- distribuição_dos_mppb %>%
+  filter(type == "estagiario") %>%
+  pull(n)
+
+num_membros_mppb <- distribuição_dos_mppb %>%
+  filter(type == "membro") %>%
+  pull(n)
+
+num_pensionistas_mppb <- distribuição_dos_mppb %>%
+  filter(type == "pensionista") %>%
+  pull(n)
+
+num_servidores_mppb <- distribuição_dos_mppb %>%
+  filter(type == "servidor") %>%
+  pull(n)
+```
+
+No mês de agosto de 2020 o MPPB tinha **`r num_servidores_mppb`** servidores, **`r num_pensionistas_mppb`** pensionistas, **`r num_membros_mppb`** membros e **`r num_estagiarios_mppb`** estagiários.
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+# load library
+library(ggplot2)
+
+# Create test data.
+data2 <- data.frame(
+  category=c("Estagiário", "Membro", "Pensionista", "Servidor"),
+  count=c(10, 280, 81, 901)
+)
+ 
+# Compute percentages
+data2$fraction <- (data2$count / sum(data2$count)) * 100
+
+# Compute the cumulative percentages (top of each rectangle)
+data2$ymax <- cumsum(data2$fraction)
+
+# Compute the bottom of each rectangle
+data2$ymin <- c(0, head(data2$ymax, n=-1))
+
+# Compute label position
+data2$labelPosition <- (data2$ymax + data2$ymin) / 2
+
+# Compute a good label
+data2$label <- paste0(data2$category, "\n", round(data2$fraction, digits = 0), "%")
+
+# Make the plot
+ggplot(data2, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
+  geom_rect() +
+  geom_text(x=3.5, aes(y=labelPosition, label=label, color=category), color = "white", size=2.7) + # x here controls label position (inner / outer)
+  scale_fill_brewer(palette = "Set2") + theme_minimal() +
+  scale_color_brewer(palette = "Set2") +
+  coord_polar(theta="y") +
+  xlim(c(0.6, 4)) +
+  theme_void() + 
+  labs(fill = "Tipo de funcionário") +
+  theme(legend.position = "none")
+```
+
+
+### Distribuição dos tipos dos gastos em agosto de 2020
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+bar_chart_mppb_2020 <- dados_filtrados %>%
+  filter( year == 2020 & aid == "mppb") %>% 
+  mutate(`Salário` = wage, `Indenizações` = perks_total, `Outros` = funds_total) %>%
+  gather(key="type", value = "value", `Salário`, `Indenizações`, `Outros`) %>%
+  select(name, role, value, type, month) %>%
+  group_by(month, type) %>%
+  summarise(sum = sum(value))
+
+bar_chart_mppb_2020 %>%
+    ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_brewer(palette = "Set2") + theme_minimal() +
+    labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do MPPB em agosto de 2020" ) +
+    scale_y_continuous(labels = scales::comma)
+```
+
+
+### Distribuição das remunerações dos funcionários de acordo com seu tipo 
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+#Distribuição dos salários
+dados_filtrados %>%
+  filter(year == 2020 & month == 8  & aid == "mppb") %>%
+  ggplot(aes(x=type, y=income_total, color=type)) +
+  theme_minimal() +  
+  scale_color_brewer(palette = "Set2") +
+  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="Tipos", color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do MPPB em agosto de 2020") 
+```
+
+
+### Distribuição das remunerações em agosto de 2020
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+remuneracao_media_mppb_2020 <- dados_filtrados  %>% 
+  filter(aid == "mppb" & year == 2020) %>% 
+  pull(income_total) %>% 
+  mean() %>%
+  round(2)
+```
+
+A remuneração média em 2020 foi de  R\$ **`r remuneracao_media_mppb_2020`**
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+dados_filtrados %>% 
+  filter(aid == "mppb", year == 2020) %>% 
+  ggplot(aes(x = income_total, y = month, color = "mppb")) +  
+  theme_minimal() + 
+  scale_color_brewer(palette = "Set2") +
+  geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 11, by = 1)) + scale_x_continuous(labels = scales::comma) + theme(legend.position = "none") + labs(x = "Valor da remuneração", y = "Mês", title = "Distribuição das remunerações") + 
+  geom_point(aes(x = 15768), size = 4, color = "#111111", shape = 124) +
+   annotate("text", label = "Remuneração média de agosto de 2020", x = 22000, y = 13, color = "#111111") 
+```
+
+
+### Distribuição dos cargos em agosto de 2020
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+cargos_mppb <- dados_filtrados %>% 
+  filter(year == 2020 & month == 8) %>% 
+  group_by(role) %>% 
+  count() %>% 
+  rename(Quantidade = n, Cargo = role) %>%
+  arrange(desc(Quantidade)) %>%
+  knitr::kable()
+cargos_mppb
+```
+
+<div class="logo">![](https://avatars2.githubusercontent.com/u/17051677?s=200&v=4)</div>
