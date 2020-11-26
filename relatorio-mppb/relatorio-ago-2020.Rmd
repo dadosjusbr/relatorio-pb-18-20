@@ -15,17 +15,32 @@ library(tidyverse)
 
 options(scipen=999)
 
-dados = read_csv(here("dados/data.csv"))
+anos <- c("2018", "2019", "2020")
+meses <- c("1","2","3","4","5","6","7","8","9","10","11","12")
+
+dados <- read_csv(here("dados/mppb-2018/mppb-2018-1/data.csv"))
+for(ano in anos){
+  for(mes in meses){
+    if(ano == "2020" && mes == "11"){
+      break
+    }
+    if((ano == "2018" && mes != "1") || ano != "2018"){
+      path <- str_c("dados/mppb-", ano, "/mppb-", ano, "-", mes, "/data.csv")
+      novo_dado <- read_csv(here(path))
+      dados <- rbind(dados, novo_dado)
+    }
+  }
+}
 
 dados_filtrados <- dados %>% 
           filter(income_total >= 0 & wage >= 0 & perks_total >= 0 & funds_total >= 0 & discounts_total >= 0)
 
 ```
 # Paraíba
-## MPPB - Agosto de 2020
+## MPPB - 2018 a 2020
 ### Verificando colunas
 #### Agency ID
-Todas as linhas possuem um valor para a coluna **aid**
+Todas as linhas possuem um valor para a coluna **aid**, e ele é sempre igual a "mppb"
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 total <- dados_filtrados %>%
   count(aid) %>%
@@ -49,10 +64,10 @@ count_month <- dados_filtrados %>%
 assertthat::are_equal(total, count_month)
 ```
 #### Year
-O valor de **year** é igual a 2020 em todas as linhas (o json diz que o mínimo deve ser 0, possível erro(?))
+O valor de **year** é igual a 2018, 2019 ou 2020 em todas as linhas (o json diz que o mínimo deve ser 0, possível erro(?))
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 count_year <- dados_filtrados %>%
-  filter(year == 2020) %>%
+  filter(year == 2018 || year == 2019 || year == 2020) %>%
   count() %>%
   pull(n)
 
@@ -83,9 +98,11 @@ As linhas da coluna **type**, segundo o json, devem ser de um dos seguintes tipo
 No entanto, os tipos presentes são: "servidor", "membro", "pensionista" e "estagiario".
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 distribuição_dos_mppb <- dados_filtrados %>% 
-  filter(aid == "mppb", month == 8) %>% 
+  filter(aid == "mppb") %>% 
   group_by(type) %>% 
-  count()
+  count() %>%
+  pull(type)
+
 distribuição_dos_mppb %>%
   knitr::kable()
 ```
@@ -168,18 +185,56 @@ n_funcionarios_mppb <- dados_filtrados %>%
 
 ## Análise Descritiva
 
-Em agosto de 2020 o MPPB apresentava um total de **`r n_funcionarios_mppb`** funcionários.
+Em outubro de 2020 o MPPB apresentava um total de **`r n_funcionarios_mppb`** funcionários.
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
-  filter(year == 2020 & month == 8) %>% 
+  filter(year == 2020 & month == 10) %>% 
   group_by(aid) %>% 
   count() %>% 
   ggplot(aes(x=aid, y=n, fill=aid), colour =  'black') +
-  geom_bar(stat="identity") + theme_minimal() + scale_fill_brewer(palette = "Set2") + xlab("Órgão") + ylab("Total de funcionários") + labs(fill = "Tribunal", title = "Total de funcionários do MPPB em Ago de 2020" ) 
+  geom_bar(stat="identity") + theme_minimal() + scale_fill_brewer(palette = "Set2") + xlab("Órgão") + ylab("Total de funcionários") + labs(fill = "Tribunal", title = "Total de funcionários do MPPB em Out de 2020" ) 
 ```
 
+Os pagamentos medianos, máximos e mínimos se deram da seguinte forma.
+
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+mediana_salarial_2018_mppb <- dados_filtrados %>% 
+  filter(year == 2018, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  median() %>% 
+  round(2)
+
+max_salarial_2018_mppb <- dados_filtrados %>% 
+  filter(year == 2018, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  max() %>% 
+  round(2)
+
+min_salarial_2018_mppb <- dados_filtrados %>% 
+  filter(year == 2018, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  min() %>% 
+  round(2)
+
+mediana_salarial_2019_mppb <- dados_filtrados %>% 
+  filter(year == 2019, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  median() %>% 
+  round(2)
+
+max_salarial_2019_mppb <- dados_filtrados %>% 
+  filter(year == 2019, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  max() %>% 
+  round(2)
+
+min_salarial_2019_mppb <- dados_filtrados %>% 
+  filter(year == 2019, aid == "mppb") %>% 
+  pull(income_total) %>% 
+  min() %>% 
+  round(2)
+
 mediana_salarial_2020_mppb <- dados_filtrados %>% 
   filter(year == 2020, aid == "mppb") %>% 
   pull(income_total) %>% 
@@ -189,46 +244,94 @@ mediana_salarial_2020_mppb <- dados_filtrados %>%
 max_salarial_2020_mppb <- dados_filtrados %>% 
   filter(year == 2020, aid == "mppb") %>% 
   pull(income_total) %>% 
-  max()  %>% 
+  max() %>% 
   round(2)
 
 min_salarial_2020_mppb <- dados_filtrados %>% 
   filter(year == 2020, aid == "mppb") %>% 
   pull(income_total) %>% 
-  min()  %>% 
+  min() %>% 
   round(2)
+
+dist <- data.frame(Mediana = c(mediana_salarial_2018_mppb, mediana_salarial_2019_mppb, mediana_salarial_2020_mppb),
+                   Máximo = c(max_salarial_2018_mppb, max_salarial_2019_mppb, max_salarial_2020_mppb),
+                   Mínimo = c(min_salarial_2018_mppb, min_salarial_2019_mppb, min_salarial_2020_mppb),
+                   stringsAsFactors = FALSE)
+rownames(dist) = c("2018","2019","2020")
+
+dist %>%
+  knitr::kable()
 ```
 
-No mês de agosto de 2020 a remuneração mediana foi de R\$ **`r mediana_salarial_2020_mppb`**, enquanto a máxima foi de R\$ **`r max_salarial_2020_mppb`** e a mínima de R\$ **`r min_salarial_2020_mppb`**.
-A remuneração mediana no ano de 2019 foi de R\$ **9129.19**, enquanto a máxima foi de R\$ **101796.58** e a mínima de R\$ **0**.
 
-
-### Distribuição dos tipos de funcionários no MPPB
+### Distribuição dos tipos de funcionários no MPPB de 2018 a 2020
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-distribuição_dos_mppb <- dados_filtrados %>% 
-  filter(aid == "mppb" , month == 8) %>% 
+distribuição_2018_mppb <- dados_filtrados %>% 
+  filter(aid == "mppb", year == 2018, month == 10) %>% 
   group_by(type) %>% 
   count()
 
-num_estagiarios_mppb <- distribuição_dos_mppb %>%
+num_estagiarios_2018_mppb <- distribuição_2018_mppb %>%
   filter(type == "estagiario") %>%
   pull(n)
 
-num_membros_mppb <- distribuição_dos_mppb %>%
+num_membros_2018_mppb <- distribuição_2018_mppb %>%
   filter(type == "membro") %>%
   pull(n)
 
-num_pensionistas_mppb <- distribuição_dos_mppb %>%
+num_pensionistas_2018_mppb <- distribuição_2018_mppb %>%
   filter(type == "pensionista") %>%
   pull(n)
 
-num_servidores_mppb <- distribuição_dos_mppb %>%
+num_servidores_2018_mppb <- distribuição_2018_mppb %>%
+  filter(type == "servidor") %>%
+  pull(n)
+
+distribuição_2019_mppb <- dados_filtrados %>% 
+  filter(aid == "mppb", year == 2019, month == 10) %>% 
+  group_by(type) %>% 
+  count()
+
+num_estagiarios_2019_mppb <- distribuição_2019_mppb %>%
+  filter(type == "estagiario") %>%
+  pull(n)
+
+num_membros_2019_mppb <- distribuição_2019_mppb %>%
+  filter(type == "membro") %>%
+  pull(n)
+
+num_pensionistas_2019_mppb <- distribuição_2019_mppb %>%
+  filter(type == "pensionista") %>%
+  pull(n)
+
+num_servidores_2019_mppb <- distribuição_2019_mppb %>%
+  filter(type == "servidor") %>%
+  pull(n)
+
+distribuição_2020_mppb <- dados_filtrados %>% 
+  filter(aid == "mppb", year == 2020, month == 10) %>% 
+  group_by(type) %>% 
+  count()
+
+num_estagiarios_2020_mppb <- distribuição_2020_mppb %>%
+  filter(type == "estagiario") %>%
+  pull(n)
+
+num_membros_2020_mppb <- distribuição_2020_mppb %>%
+  filter(type == "membro") %>%
+  pull(n)
+
+num_pensionistas_2020_mppb <- distribuição_2020_mppb %>%
+  filter(type == "pensionista") %>%
+  pull(n)
+
+num_servidores_2020_mppb <- distribuição_2020_mppb %>%
   filter(type == "servidor") %>%
   pull(n)
 ```
 
-No mês de agosto de 2020 o MPPB tinha **`r num_servidores_mppb`** servidores, **`r num_pensionistas_mppb`** pensionistas, **`r num_membros_mppb`** membros e **`r num_estagiarios_mppb`** estagiários.
+No mês de outubro de 2018 o MPPB tinha **`r num_servidores_2018_mppb`** servidores, **`r num_pensionistas_2018_mppb`** pensionistas, **`r num_membros_2018_mppb`** membros e **`r num_estagiarios_2018_mppb`** estagiários. Já no mês de outubro de 2019 o MPPB tinha **`r num_servidores_2019_mppb`** servidores, **`r num_pensionistas_2019_mppb`** pensionistas, **`r num_membros_2019_mppb`** membros e **`r num_estagiarios_2019_mppb`** estagiários. Em outubro de 2020 o MPPB tinha **`r num_servidores_2020_mppb`** servidores, **`r num_pensionistas_2020_mppb`** pensionistas, **`r num_membros_2020_mppb`** membros e **`r num_estagiarios_2020_mppb`** estagiários.
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 # load library
@@ -237,7 +340,7 @@ library(ggplot2)
 # Create test data.
 data2 <- data.frame(
   category=c("Estagiário", "Membro", "Pensionista", "Servidor"),
-  count=c(10, 280, 81, 901)
+  count=c(6, 280, 80, 905)
 )
  
 # Compute percentages
@@ -264,12 +367,51 @@ ggplot(data2, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
   coord_polar(theta="y") +
   xlim(c(0.6, 4)) +
   theme_void() + 
-  labs(fill = "Tipo de funcionário") +
+  labs(fill = "Tipo de funcionário", title = "Distribuiçao dos funcionários em outubro de 2020") +
   theme(legend.position = "none")
 ```
 
-### Distribuição dos tipos dos gastos em agosto de 2020
 
+### Distribuição dos tipos dos gastos de 2018 a 2020
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+bar_chart_mppb_2018 <- dados_filtrados %>%
+  filter( year == 2018 & aid == "mppb") %>% 
+  mutate(`Salários` = wage, `Indenizações` = perks_total, `Benefícios` = funds_total) %>%
+  gather(key="type", value = "value", `Salários`, `Indenizações`, `Benefícios`) %>%
+  select(name, role, value, type, month) %>%
+  group_by(month, type) %>%
+  summarise(sum = sum(value))
+
+bar_chart_mppb_2018 %>%
+    ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_brewer(palette = "Set2") + theme_minimal() +
+    labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do MPPB em 2018") +
+    scale_y_continuous(labels = scales::comma)
+```
+
+
+Os benefícios em novembro de 2019 superam os salários e as indenizações, somados. 
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+bar_chart_mppb_2019 <- dados_filtrados %>%
+  filter( year == 2019 & aid == "mppb") %>% 
+  mutate(`Salários` = wage, `Indenizações` = perks_total, `Benefícios` = funds_total) %>%
+  gather(key="type", value = "value", `Salários`, `Indenizações`, `Benefícios`) %>%
+  select(name, role, value, type, month) %>%
+  group_by(month, type) %>%
+  summarise(sum = sum(value))
+
+bar_chart_mppb_2019 %>%
+    ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_brewer(palette = "Set2") + theme_minimal() +
+    labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do MPPB em 2019") +
+    scale_y_continuous(labels = scales::comma)
+```
+
+As remunerações de 2020 se comportam de forma semelhante a 2018, até o último mês disponível (outubro).
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 bar_chart_mppb_2020 <- dados_filtrados %>%
   filter( year == 2020 & aid == "mppb") %>% 
@@ -283,25 +425,64 @@ bar_chart_mppb_2020 %>%
     ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
     geom_bar(position="stack", stat="identity") +
     scale_fill_brewer(palette = "Set2") + theme_minimal() +
-    labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do MPPB em agosto de 2020") +
+    labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do MPPB em 2020") +
     scale_y_continuous(labels = scales::comma)
 ```
 
+
 ### Distribuição das remunerações dos funcionários de acordo com seu tipo 
+
+Em 2018 observa-se uma variação de 0 a R\$ 45.000,00 nas remunerações. 
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+#Distribuição dos salários
+dados_filtrados %>%
+  filter(year == 2018 & month == 11  & aid == "mppb") %>%
+  ggplot(aes(x=type, y=income_total, color=type)) +
+  theme_minimal() +  
+  scale_color_brewer(palette = "Set2") +
+  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="Tipos", color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do MPPB em novembro de 2018") 
+```
+
+Em 2019 observa-se crescimento na variação com relação ao mesmo mês do ano anterior, que agora vai de 0 a R\$ 80.000,00. Observa-se um aumento na faixa de remuneração de todos os tipos de funcionários (exceto estagiários).
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 #Distribuição dos salários
 dados_filtrados %>%
-  filter(year == 2020 & month == 8  & aid == "mppb") %>%
+  filter(year == 2019 & month == 11  & aid == "mppb") %>%
   ggplot(aes(x=type, y=income_total, color=type)) +
   theme_minimal() +  
   scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="Tipos", color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do MPPB em agosto de 2020") 
+  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="Tipos", color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do MPPB em novembro de 2019") 
 ```
 
-### Distribuição das remunerações em agosto de 2020
+Em 2020 ainda não se têm os dados do mês equivalente (novembro), mas em outubro as remunerações se comportaram de forma semelhante ao mesmo período nos outros meses. 
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+#Distribuição dos salários
+dados_filtrados %>%
+  filter(year == 2020 & month == 10  & aid == "mppb") %>%
+  ggplot(aes(x=type, y=income_total, color=type)) +
+  theme_minimal() +  
+  scale_color_brewer(palette = "Set2") +
+  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="Tipos", color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do MPPB em outubro de 2020") 
+```
+
+
+### Distribuição das remunerações de 2018 a 2020
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+remuneracao_media_mppb_2018 <- dados_filtrados  %>% 
+  filter(aid == "mppb" & year == 2018) %>% 
+  pull(income_total) %>% 
+  mean() %>%
+  round(2)
+
+remuneracao_media_mppb_2019 <- dados_filtrados  %>% 
+  filter(aid == "mppb" & year == 2019) %>% 
+  pull(income_total) %>% 
+  mean() %>%
+  round(2)
+
 remuneracao_media_mppb_2020 <- dados_filtrados  %>% 
   filter(aid == "mppb" & year == 2020) %>% 
   pull(income_total) %>% 
@@ -309,8 +490,33 @@ remuneracao_media_mppb_2020 <- dados_filtrados  %>%
   round(2)
 ```
 
-A remuneração média foi de R\$ **`r remuneracao_media_mppb_2020`**
+As remunerações médias, de 2018, 2019 e 2020, respectivamente, foram: R\$ **`r remuneracao_media_mppb_2018`**,  R\$ **`r remuneracao_media_mppb_2019`** e  R\$ **`r remuneracao_media_mppb_2020`**.
 
+Em 2018 observam-se poucas amostras com remuneração acima de R\$ 75.000,00. 
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+dados_filtrados %>% 
+  filter(aid == "mppb", year == 2018) %>% 
+  ggplot(aes(x = income_total, y = month, color = "mppb")) +  
+  theme_minimal() + 
+  scale_color_brewer(palette = "Set2") +
+  geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 11, by = 1)) + scale_x_continuous(labels = scales::comma) + theme(legend.position = "none") + labs(x = "Valor da remuneração", y = "Mês", title = "Distribuição das remunerações") + 
+  geom_point(aes(x = 15768), size = 4, color = "#111111", shape = 124) +
+   annotate("text", label = "Remuneração média de 2018", x = 22000, y = 13, color = "#111111") 
+```
+
+Como já foi exibido anteriormente, um número superior de remunerações acima de R\$ 75.000,00 em 2019, em comparação com os outros anos. 
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+dados_filtrados %>% 
+  filter(aid == "mppb", year == 2019) %>% 
+  ggplot(aes(x = income_total, y = month, color = "mppb")) +  
+  theme_minimal() + 
+  scale_color_brewer(palette = "Set2") +
+  geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 11, by = 1)) + scale_x_continuous(labels = scales::comma) + theme(legend.position = "none") + labs(x = "Valor da remuneração", y = "Mês", title = "Distribuição das remunerações") + 
+  geom_point(aes(x = 15768), size = 4, color = "#111111", shape = 124) +
+   annotate("text", label = "Remuneração média de 2019", x = 22000, y = 13, color = "#111111") 
+```
+
+Em 2020 nenhuma remuneração chega à marca de R\$ 75.000,00, até então.
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
   filter(aid == "mppb", year == 2020) %>% 
@@ -319,23 +525,56 @@ dados_filtrados %>%
   scale_color_brewer(palette = "Set2") +
   geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 11, by = 1)) + scale_x_continuous(labels = scales::comma) + theme(legend.position = "none") + labs(x = "Valor da remuneração", y = "Mês", title = "Distribuição das remunerações") + 
   geom_point(aes(x = 15768), size = 4, color = "#111111", shape = 124) +
-   annotate("text", label = "Remuneração média de agosto de 2020", x = 22000, y = 13, color = "#111111") 
+   annotate("text", label = "Remuneração média de 2020", x = 22000, y = 13, color = "#111111") 
 ```
 
 ### Distribuição dos tipos de auxílios e indenizações
 #### Benefícios
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-personal <- dados_filtrados %>%
+personal_2018 <- dados_filtrados %>%
+  filter(year == 2018) %>%
   filter(!is.null(funds_personal_benefits)) %>%
   summarise(sum = sum(funds_personal_benefits)) %>%
   pull(sum)
-
-eventual <- dados_filtrados %>%
+eventual_2018 <- dados_filtrados %>%
+  filter(year == 2018) %>%
   filter(!is.null(funds_eventual_benefits)) %>%
   summarise(sum = sum(funds_eventual_benefits)) %>%
   pull(sum)
+trust_2018 <- dados_filtrados %>%
+  filter(year == 2018) %>%
+  filter(!is.null(funds_trust_position)) %>%
+  summarise(sum = sum(funds_trust_position)) %>%
+  pull(sum)
 
-trust <- dados_filtrados %>%
+personal_2019 <- dados_filtrados %>%
+  filter(year == 2019) %>%
+  filter(!is.null(funds_personal_benefits)) %>%
+  summarise(sum = sum(funds_personal_benefits)) %>%
+  pull(sum)
+eventual_2019 <- dados_filtrados %>%
+  filter(year == 2019) %>%
+  filter(!is.null(funds_eventual_benefits)) %>%
+  summarise(sum = sum(funds_eventual_benefits)) %>%
+  pull(sum)
+trust_2019 <- dados_filtrados %>%
+  filter(year == 2019) %>%
+  filter(!is.null(funds_trust_position)) %>%
+  summarise(sum = sum(funds_trust_position)) %>%
+  pull(sum)
+
+personal_2020 <- dados_filtrados %>%
+  filter(year == 2020) %>%
+  filter(!is.null(funds_personal_benefits)) %>%
+  summarise(sum = sum(funds_personal_benefits)) %>%
+  pull(sum)
+eventual_2020 <- dados_filtrados %>%
+  filter(year == 2020) %>%
+  filter(!is.null(funds_eventual_benefits)) %>%
+  summarise(sum = sum(funds_eventual_benefits)) %>%
+  pull(sum)
+trust_2020 <- dados_filtrados %>%
+  filter(year == 2020) %>%
   filter(!is.null(funds_trust_position)) %>%
   summarise(sum = sum(funds_trust_position)) %>%
   pull(sum)
@@ -343,23 +582,65 @@ trust <- dados_filtrados %>%
 daily <- dados_filtrados[!is.na(dados_filtrados$funds_daily),] %>%
   summarise(sum = sum(funds_daily)) %>%
   pull(sum)
-
 gratification <- dados_filtrados[!is.na(dados_filtrados$funds_gratification),] %>%
   summarise(sum = sum(funds_gratification)) %>%
   pull(sum)
-
 origin_pos <- dados_filtrados[!is.na(dados_filtrados$funds_origin_pos),] %>%
   summarise(sum = sum(funds_origin_pos)) %>%
   pull(sum)
-
 others_total <- dados_filtrados[!is.na(dados_filtrados$funds_others_total),] %>%
   summarise(sum = sum(funds_others_total)) %>%
   pull(sum)
+
+benef <- data.frame(`Benefícios Permanentes`  = c(personal_2018, personal_2019, personal_2020),
+                   `Benefícios Eventuais` = c(eventual_2018, eventual_2019, eventual_2020),
+                   `Cargos de Confiança` = c(trust_2018, trust_2019, trust_2020),
+                   stringsAsFactors = FALSE)
+rownames(benef) = c("2018","2019","2020")
+
+benef %>%
+  knitr::kable()
 ```
 
-Benefícios Permanentes (funds_personal_benefits), que são os benefícios adquiridos judicialmente e os outros benefícios pessoais, são a maior parcela paga, com um montante de R\$ **`r personal`**. Benefícios Eventuais (funds_eventual_benefits), como bônus de natal e férias, equivalem ao montante de R\$ **`r eventual`**. Já os benefícios recebidos por cargos de confiança exercidos pelos empregados (funds_trust_position) equivalem a R\$ **`r trust`**. 
+Benefícios Permanentes (funds_personal_benefits) são os benefícios adquiridos judicialmente e outros benefícios pessoais, são a maior parcela paga em todos os anos. Benefícios Eventuais (funds_eventual_benefits), são benefícios como bônus de natal e férias. E Cargos de Confiança (funds_trust_position) são benefícios recebidos por funcionários em cargos de confiança. 
 
-Os outros benefícios, **funds_daily**,	**funds_gratification**,	**funds_origin_pos** e **funds_others_total**, não possuem valores associados (todos NA).
+Os outros benefícios, **funds_daily**,	**funds_gratification**,	**funds_origin_pos** e **funds_others_total**, não possuem valores associados (todos NA), em todos os anos.
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+bar_chart_mppb_2020 <- dados_filtrados %>%
+  filter( year == 2018 & aid == "mppb") %>% 
+  mutate(`Permanentes` = funds_personal_benefits, `Bônus e Férias` = funds_eventual_benefits, `Cargo de Confiança` = funds_trust_position) %>%
+  gather(key="type", value = "value", `Permanentes`, `Bônus e Férias`, `Cargo de Confiança`) %>%
+  select(name, role, value, type, month) %>%
+  group_by(month, type) %>%
+  summarise(sum = sum(value)) 
+
+bar_chart_mppb_2020 %>%
+    ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_brewer(palette = "Set2") + theme_minimal() +
+    labs(y = "Valor total", x = "Mês", fill = "Tipo de Benefício", title = "Distribuições dos benefícios do MPPB em 2018") +
+    scale_y_continuous(labels = scales::comma)
+```
+
+
+Aqui fica claro a fonte do aumento nos benefícios de novembro: Bônus e Férias. Mas ainda não explica a diferença com relação aos outros anos (talvez férias acumuladas? ou inconsistencia nos dados?). 
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+bar_chart_mppb_2020 <- dados_filtrados %>%
+  filter( year == 2019 & aid == "mppb") %>% 
+  mutate(`Permanentes` = funds_personal_benefits, `Bônus e Férias` = funds_eventual_benefits, `Cargo de Confiança` = funds_trust_position) %>%
+  gather(key="type", value = "value", `Permanentes`, `Bônus e Férias`, `Cargo de Confiança`) %>%
+  select(name, role, value, type, month) %>%
+  group_by(month, type) %>%
+  summarise(sum = sum(value)) 
+
+bar_chart_mppb_2020 %>%
+    ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_brewer(palette = "Set2") + theme_minimal() +
+    labs(y = "Valor total", x = "Mês", fill = "Tipo de Benefício", title = "Distribuições dos benefícios do MPPB em 2019") +
+    scale_y_continuous(labels = scales::comma)
+```
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 bar_chart_mppb_2020 <- dados_filtrados %>%
@@ -374,74 +655,167 @@ bar_chart_mppb_2020 %>%
     ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
     geom_bar(position="stack", stat="identity") +
     scale_fill_brewer(palette = "Set2") + theme_minimal() +
-    labs(y = "Valor total", x = "Mês", fill = "Tipo de Benefício", title = "Distribuições dos benefícios do MPPB em agosto de 2020") +
+    labs(y = "Valor total", x = "Mês", fill = "Tipo de Benefício", title = "Distribuições dos benefícios do MPPB em 2020") +
     scale_y_continuous(labels = scales::comma)
 ```
 
 #### Indenizações
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-food <- dados_filtrados[!is.na(dados_filtrados$perks_food),] %>%
+food_2018 <- dados_filtrados[!is.na(dados_filtrados$perks_food),] %>%
+  filter(year == 2018) %>%
   summarise(sum = sum(perks_food)) %>%
   pull(sum)
-
-health <- dados_filtrados[!is.na(dados_filtrados$perks_health),] %>%
+health_2018 <- dados_filtrados[!is.na(dados_filtrados$perks_health),] %>%
+  filter(year == 2018) %>%
   summarise(sum = sum(perks_health)) %>%
   pull(sum)
-
-compensatory_leave <- dados_filtrados[!is.na(dados_filtrados$perks_compensatory_leave),] %>%
+compensatory_leave_2018 <- dados_filtrados[!is.na(dados_filtrados$perks_compensatory_leave),] %>%
+  filter(year == 2018) %>%
   summarise(sum = sum(perks_compensatory_leave)) %>%
   pull(sum)
-
-pecuniary <- dados_filtrados[!is.na(dados_filtrados$perks_pecuniary),] %>%
+pecuniary_2018 <- dados_filtrados[!is.na(dados_filtrados$perks_pecuniary),] %>%
+  filter(year == 2018) %>%
   summarise(sum = sum(perks_pecuniary)) %>%
+  pull(sum)
+birth_2018 <- dados_filtrados[!is.na(dados_filtrados$perks_birth),] %>%
+  filter(year == 2018) %>%
+  summarise(sum = sum(perks_birth)) %>%
+  pull(sum)
+housing_2018 <- dados_filtrados[!is.na(dados_filtrados$perks_housing),] %>%
+  filter(year == 2018) %>%
+  summarise(sum = sum(perks_housing)) %>%
+  pull(sum)
+
+food_2019 <- dados_filtrados[!is.na(dados_filtrados$perks_food),] %>%
+  filter(year == 2019) %>%
+  summarise(sum = sum(perks_food)) %>%
+  pull(sum)
+health_2019 <- dados_filtrados[!is.na(dados_filtrados$perks_health),] %>%
+  filter(year == 2019) %>%
+  summarise(sum = sum(perks_health)) %>%
+  pull(sum)
+compensatory_leave_2019 <- dados_filtrados[!is.na(dados_filtrados$perks_compensatory_leave),] %>%
+  filter(year == 2019) %>%
+  summarise(sum = sum(perks_compensatory_leave)) %>%
+  pull(sum)
+pecuniary_2019 <- dados_filtrados[!is.na(dados_filtrados$perks_pecuniary),] %>%
+  filter(year == 2019) %>%
+  summarise(sum = sum(perks_pecuniary)) %>%
+  pull(sum)
+birth_2019 <- dados_filtrados[!is.na(dados_filtrados$perks_birth),] %>%
+  filter(year == 2019) %>%
+  summarise(sum = sum(perks_birth)) %>%
+  pull(sum)
+housing_2019 <- dados_filtrados[!is.na(dados_filtrados$perks_housing),] %>%
+  filter(year == 2019) %>%
+  summarise(sum = sum(perks_housing)) %>%
+  pull(sum)
+
+food_2020 <- dados_filtrados[!is.na(dados_filtrados$perks_food),] %>%
+  filter(year == 2020) %>%
+  summarise(sum = sum(perks_food)) %>%
+  pull(sum)
+health_2020 <- dados_filtrados[!is.na(dados_filtrados$perks_health),] %>%
+  filter(year == 2020) %>%
+  summarise(sum = sum(perks_health)) %>%
+  pull(sum)
+compensatory_leave_2020 <- dados_filtrados[!is.na(dados_filtrados$perks_compensatory_leave),] %>%
+  filter(year == 2020) %>%
+  summarise(sum = sum(perks_compensatory_leave)) %>%
+  pull(sum)
+pecuniary_2020 <- dados_filtrados[!is.na(dados_filtrados$perks_pecuniary),] %>%
+  filter(year == 2020) %>%
+  summarise(sum = sum(perks_pecuniary)) %>%
+  pull(sum)
+birth_2020 <- dados_filtrados[!is.na(dados_filtrados$perks_birth),] %>%
+  filter(year == 2020) %>%
+  summarise(sum = sum(perks_birth)) %>%
+  pull(sum)
+housing_2020 <- dados_filtrados[!is.na(dados_filtrados$perks_housing),] %>%
+  filter(year == 2020) %>%
+  summarise(sum = sum(perks_housing)) %>%
   pull(sum)
 
 vacation <- dados_filtrados[!is.na(dados_filtrados$perks_vacation),] %>%
   summarise(sum = sum(perks_vacation)) %>%
   pull(sum)
-
 transportation <- dados_filtrados[!is.na(dados_filtrados$perks_transportation),] %>%
   summarise(sum = sum(perks_transportation)) %>%
   pull(sum)
-
 pre_school <- dados_filtrados[!is.na(dados_filtrados$perks_pre_school),] %>%
   summarise(sum = sum(perks_pre_school)) %>%
   pull(sum)
-
-birth <- dados_filtrados[!is.na(dados_filtrados$perks_birth),] %>%
-  summarise(sum = sum(perks_birth)) %>%
-  pull(sum)
-
-housing <- dados_filtrados[!is.na(dados_filtrados$perks_housing),] %>%
-  summarise(sum = sum(perks_housing)) %>%
-  pull(sum)
-
 subsistence <- dados_filtrados[!is.na(dados_filtrados$perks_subsistence),] %>%
   summarise(sum = sum(perks_subsistence)) %>%
   pull(sum)
-
 vacation_pecuniary <- dados_filtrados[!is.na(dados_filtrados$perks_vacation_pecuniary),] %>%
   summarise(sum = sum(perks_vacation_pecuniary)) %>%
   pull(sum)
-
 furniture_transport <- dados_filtrados[!is.na(dados_filtrados$perks_furniture_transport),] %>%
   summarise(sum = sum(perks_furniture_transport)) %>%
   pull(sum)
-
 premium_license_pecuniary <- dados_filtrados[!is.na(dados_filtrados$perks_premium_license_pecuniary),] %>%
   summarise(sum = sum(perks_premium_license_pecuniary)) %>%
   pull(sum)
-```
-Os Auxílios Alimentação (perks_food) são a maior parcela das verbas indenizatórias, com um montante de R\$ **`r food`**. Auxílios Saúde (perks_health) equivalem ao montante de R\$ **`r health`**. As Compensações por direito adquirido (perks_compensatory_leave) equivalem a R\$ **`r compensatory_leave`**. Já os pagamentos por alguma vantagem e direito do servidor público (perks_pecuniary) equivalem a R\$ **`r pecuniary`**.
 
-Os outros benefícios não possuem valores associados. **perks_birth**, **perks_housing**, **perks_subsistence** são todos 0, enquanto **perks_vacation**,	**perks_transportation**,	**perks_pre_school**, **perks_vacation_pecuniary**, **perks_furniture_transport**, **perks_premium_license_pecuniary** são todos NA.
+inden <- data.frame(`Alimentação`  = c(food_2018, food_2019, food_2020),
+                   `Saúde` = c(health_2018, health_2019, health_2020),
+                   `Compensações` = c(compensatory_leave_2018, compensatory_leave_2019, compensatory_leave_2020),
+                   `Vantagem e Direito` = c(pecuniary_2018, pecuniary_2019, pecuniary_2020),
+                   `Natalidade` = c(birth_2018, birth_2019, birth_2020),
+                   `Habitação` = c(housing_2018, housing_2019, housing_2020),
+                   stringsAsFactors = FALSE)
+rownames(inden) = c("2018","2019","2020")
+
+inden %>%
+  knitr::kable()
+```
+
+Os auxílios presentes foram: Pagamentos por alguma vantagem e direito do servidor público (perks_pecuniary), que foi a maior parcela das verbas indenizatórias em todos os anos, bem como Auxílios Alimentação (perks_food), Auxílios Saúde (perks_health), Compensações por direito adquirido (perks_compensatory_leave), Auxílios Natalidade (perks_birth) e Auxílios Habitação (perks_housing).
+
+Os outros benefícios não possuem valores associados. **perks_subsistence** tem todos os valores 0, em todos os anos, enquanto **perks_vacation**,	**perks_transportation**,	**perks_pre_school**, **perks_vacation_pecuniary**, **perks_furniture_transport**, **perks_premium_license_pecuniary** são todos NA, em todos os anos.
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 bar_chart_mppb_2020 <- dados_filtrados %>% 
   subset(!is.na(perks_health)) %>%
-  subset(!is.na(perks_pecuniary)) %>%
-  subset(!is.na(perks_food)) %>%
-  subset(!is.na(perks_compensatory_leave)) %>%
+  filter( year == 2018 & aid == "mppb") %>% 
+  mutate(`Saúde` = perks_health, `Vantagem e Direito` = perks_pecuniary, `Alimentação` = perks_food, `Compensações` = perks_compensatory_leave) %>%
+  gather(key="type", value = "value", `Saúde`, `Vantagem e Direito`, `Alimentação`, `Compensações`) %>%
+  select(name, role, value, type, month) %>%
+  group_by(month, type) %>%
+  summarise(sum = sum(value)) 
+
+bar_chart_mppb_2020 %>%
+    ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_brewer(palette = "Set2") + theme_minimal() +
+    labs(y = "Valor total", x = "Mês", fill = "Tipo de Indenização", title = "Distribuições das indenizações do MPPB em 2018") +
+    scale_y_continuous(labels = scales::comma)
+```
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+bar_chart_mppb_2020 <- dados_filtrados %>% 
+  subset(!is.na(perks_health)) %>%
+  filter( year == 2019 & aid == "mppb") %>% 
+  mutate(`Saúde` = perks_health, `Vantagem e Direito` = perks_pecuniary, `Alimentação` = perks_food, `Compensações` = perks_compensatory_leave) %>%
+  gather(key="type", value = "value", `Saúde`, `Vantagem e Direito`, `Alimentação`, `Compensações`) %>%
+  select(name, role, value, type, month) %>%
+  group_by(month, type) %>%
+  summarise(sum = sum(value)) 
+
+bar_chart_mppb_2020 %>%
+    ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+    geom_bar(position="stack", stat="identity") +
+    scale_fill_brewer(palette = "Set2") + theme_minimal() +
+    labs(y = "Valor total", x = "Mês", fill = "Tipo de Indenização", title = "Distribuições das indenizações do MPPB em 2019") +
+    scale_y_continuous(labels = scales::comma)
+```
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+bar_chart_mppb_2020 <- dados_filtrados %>% 
+  subset(!is.na(perks_health)) %>%
   filter( year == 2020 & aid == "mppb") %>% 
   mutate(`Saúde` = perks_health, `Vantagem e Direito` = perks_pecuniary, `Alimentação` = perks_food, `Compensações` = perks_compensatory_leave) %>%
   gather(key="type", value = "value", `Saúde`, `Vantagem e Direito`, `Alimentação`, `Compensações`) %>%
@@ -453,7 +827,7 @@ bar_chart_mppb_2020 %>%
     ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
     geom_bar(position="stack", stat="identity") +
     scale_fill_brewer(palette = "Set2") + theme_minimal() +
-    labs(y = "Valor total", x = "Mês", fill = "Tipo de Indenização", title = "Distribuições das indenizações do MPPB em agosto de 2020") +
+    labs(y = "Valor total", x = "Mês", fill = "Tipo de Indenização", title = "Distribuições das indenizações do MPPB em 2020") +
     scale_y_continuous(labels = scales::comma)
 ```
 
@@ -470,6 +844,5 @@ cargos_mppb <- dados_filtrados %>%
 cargos_mppb
 ```
 
-##### TODO: Analisar picos e vales nas remunerações, benefícios e indenizações
 
 <div class="logo">![](https://avatars2.githubusercontent.com/u/17051677?s=200&v=4)</div>
