@@ -1,3 +1,6 @@
+.DS_Store
+reports/*nb.html
+
 dados/raw
 .RData
 .Rhistory

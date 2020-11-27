@@ -10,4 +10,6 @@ for ano in $anos; do
     done
 done
 
+for f in `ls *zip`; do unzip -o $f && mv data.csv $f-data.csv; done
+
 cd -
