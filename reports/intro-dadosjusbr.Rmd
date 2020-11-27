@@ -4,7 +4,7 @@ title: "DadosJus: Libertando dados do Judiciário Brasileiro"
 output:
   prettydoc::html_pretty:
     theme: cayman
-    css: '/home/david/mppb/entrega-relatorio/dadosjus/stylesheets/prettydoc-cayman.css'
+    css: './prettydoc-cayman.css'
     highlight: github
     df_print: paged
 ---
