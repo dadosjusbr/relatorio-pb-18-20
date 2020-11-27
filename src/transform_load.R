@@ -1,6 +1,8 @@
+#!/usr/bin/env Rscript
+
 library(readr)
 library(magrittr)
-library(purrr)
+library(purrr, warn.conflicts = F)
 
 col_types = cols(
   aid = col_character(),
