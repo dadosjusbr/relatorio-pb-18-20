@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+mkdir -p dados/raw
 cd dados/raw
 
 anos=`seq 2018 2020`
