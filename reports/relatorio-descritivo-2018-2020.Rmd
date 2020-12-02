@@ -1,5 +1,5 @@
 ---
-title: "DadosJus: Libertando dados do Judiciário Brasileiro"
+title: "Descritivo de Remunerações do MPPB de 2018 a 2020"
 
 output:
   prettydoc::html_pretty:
@@ -17,8 +17,9 @@ options(scipen=999)
 
 dados <- read_csv(here("dados/ready/incomes-all.csv"))
 
-dados_filtrados <- dados %>% 
-          filter(income_total >= 0 & wage >= 0 & perks_total >= 0 & funds_total >= 0 & discounts_total >= 0)
+dados_filtrados <- dados %>%
+  filter(aid != "trt13") %>%
+  filter(aid != "tjpb") 
 
 ```
 # Paraíba
