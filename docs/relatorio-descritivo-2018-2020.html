@@ -12,7 +12,7 @@
 
 
 
-<title>DadosJus: Libertando dados do Judiciário Brasileiro</title>
+<title>Descritivo de Remunerações do MPPB de 2018 a 2020</title>
 
 <style type="text/css">.pagedtable {
 overflow: auto;
@@ -1355,7 +1355,7 @@ h3 { font-size: 35px;
 
 
 <section class="page-header">
-<h1 class="title toc-ignore project-name">DadosJus: Libertando dados do Judiciário Brasileiro</h1>
+<h1 class="title toc-ignore project-name">Descritivo de Remunerações do MPPB de 2018 a 2020</h1>
 </section>
 
 
@@ -1365,90 +1365,6 @@ h3 { font-size: 35px;
 <h1>Paraíba</h1>
 <div id="mppb---2018-a-2020" class="section level2">
 <h2>MPPB - 2018 a 2020</h2>
-<div id="verificando-colunas" class="section level3">
-<h3>Verificando colunas</h3>
-<div id="agency-id" class="section level4">
-<h4>Agency ID</h4>
-<p>Todas as linhas possuem um valor para a coluna <strong>aid</strong>, e ele é sempre igual a “mppb”</p>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="month" class="section level4">
-<h4>Month</h4>
-<p>O valor de <strong>month</strong> é maior que 0 e menor que 13 em todas as linhas (o json diz que o mínimo deve ser 0, e o máximo 12, possível erro)</p>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="year" class="section level4">
-<h4>Year</h4>
-<p>O valor de <strong>year</strong> é igual a 2018, 2019 ou 2020 em todas as linhas (o json diz que o mínimo deve ser 0, possível erro(?))</p>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="name" class="section level4">
-<h4>Name</h4>
-<p>Todas as linhas possuem um valor para a coluna <strong>name</strong></p>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="role" class="section level4">
-<h4>Role</h4>
-<p>Todas as linhas possuem um valor para a coluna <strong>role</strong></p>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="type" class="section level4">
-<h4>Type</h4>
-<p>As linhas da coluna <strong>type</strong>, segundo o json, devem ser de um dos seguintes tipos: “servidor”, “membro”, “pensionista” ou “indefinido”. No entanto, os tipos presentes são: “servidor”, “membro”, “pensionista” e “estagiario”.</p>
-<table>
-<thead>
-<tr class="header">
-<th align="left">x</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">estagiario</td>
-</tr>
-<tr class="even">
-<td align="left">membro</td>
-</tr>
-<tr class="odd">
-<td align="left">pensionista</td>
-</tr>
-<tr class="even">
-<td align="left">servidor</td>
-</tr>
-</tbody>
-</table>
-<p>Todas as linhas possuem um valor para a coluna <strong>type</strong></p>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="income-total" class="section level4">
-<h4>Income Total</h4>
-<p>Todas as linhas possuem um valor maior ou igual a 0 para a coluna <strong>income_total</strong></p>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="perks-total" class="section level4">
-<h4>Perks Total</h4>
-<p>Todas as linhas possuem um valor maior ou igual a 0 para a coluna <strong>perks_total</strong></p>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="sum-of-all-funds" class="section level4">
-<h4>Sum of all funds</h4>
-<p>Todas as linhas possuem um valor maior ou igual a 0 para a coluna <strong>funds_total</strong></p>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="total-discounts" class="section level4">
-<h4>Total discounts</h4>
-<p>Todas as linhas possuem um valor maior ou igual a 0 para a coluna <strong>discounts_total</strong></p>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="social-security-discounts" class="section level4">
-<h4>Social security discounts</h4>
-<p>Todas as linhas possuem um valor maior ou igual a 0 para a coluna <strong>discount_prev_contribution</strong> (No json a variavel está escrita “discounts_prev_contribution”, possível erro)</p>
-<pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="demais-colunas" class="section level4">
-<h4>Demais colunas</h4>
-<p>As colunas <strong>reg</strong>, <strong>workspace</strong>, <strong>active</strong>, <strong>wage</strong>, <strong>perks_food</strong>, <strong>perks_vacation</strong>, <strong>perks_transportation</strong>, <strong>perks_pre_school</strong>, <strong>perks_health</strong>, <strong>perks_birth</strong>, <strong>perks_housing</strong>, <strong>perks_subsistence</strong>, <strong>perks_compensatory_leave</strong>, <strong>perks_pecuniary</strong>, <strong>perks_vacation_pecuniary</strong>, <strong>perks_furniture_transport</strong>, <strong>perks_premium_license_pecuniary</strong>, <strong>funds_personal_benefits</strong>, <strong>funds_eventual_benefits</strong>, <strong>funds_trust_position</strong>, <strong>funds_daily</strong>, <strong>funds_gratification</strong>, <strong>funds_origin_pos</strong>, <strong>funds_others_total</strong>, <strong>discount_prev_contribution</strong>, <strong>discounts_ceil_retention</strong>, <strong>discounts_income_tax</strong> e <strong>discounts_others_total</strong> não possuem nenhum tipo de regra de preenchimento no package. Mais abaixo têm-se algumas análises a respeito dos benefícios e indenizações.</p>
-</div>
-</div>
 </div>
 <div id="análise-descritiva" class="section level2">
 <h2>Análise Descritiva</h2>

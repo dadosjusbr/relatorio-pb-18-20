@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+mkdir -p dados/raw
 cd dados/raw
 
 BASE_URL="https://cloud5.lsd.ufcg.edu.br:8080/swift/v1/dadosjusbr"
