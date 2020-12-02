@@ -1,0 +1,226 @@
+---
+title: "Descritivo de remunerações geral"
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    css: './prettydoc-cayman.css'
+---
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(hrbrthemes)
+library(ggbeeswarm)
+theme_set(theme_ipsum_rc())
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+knitr::opts_chunk$set(tidy = FALSE, 
+                      echo = FALSE,
+                      warning = FALSE, 
+                      fig.width = 8)
+set.seed(1014)
+options(digits = 2, scipen = 999)
+```
+
+
+```{r}
+incomes = read_csv(
+  here::here("dados/ready/incomes-all.csv"),
+  col_types = cols(
+    aid = col_character(),
+    month = col_integer(),
+    year = col_integer(),
+    reg = col_character(),
+    name = col_character(),
+    role = col_character(),
+    type = col_character(),
+    workplace = col_character(),
+    active = col_logical(),
+    .default = col_double()
+  )
+)
+
+incomes = incomes %>% 
+  mutate(date = lubridate::ymd(paste(year, month, "01")))
+```
+
+## Contagem dos registros
+
+```{r}
+incomes %>% 
+  count(aid, active, date) %>% 
+  ggplot(aes(x = date, n, fill = active)) + 
+  facet_grid(aid ~ .) + 
+  geom_col() + 
+  labs(title = "Registros por mês", 
+       y = "Registros", 
+       x = "")
+```
+
+```{r}
+incomes %>% 
+  filter(active) %>% 
+  count(aid, type, date) %>% 
+  group_by(aid, date) %>% 
+  mutate(prop = n / sum(n)) %>% 
+  ggplot(aes(date, prop, fill = type)) + 
+  facet_grid(aid ~ .) + 
+  geom_col() + 
+  labs(title = "Registros dos ativos por mês", 
+       y = "Proporção", 
+       x = "") + 
+  scale_fill_brewer(palette = "Accent")
+```
+
+## Distribuições dos valores
+
+```{r}
+five_nums <- function(d, column){
+  d %>% 
+    filter(!is.na(value)) %>% 
+    mutate(value = value / 1e3) %>% 
+    group_by(aid, {{column}}) %>% 
+    summarise(y0 = min(value),
+              y25 = quantile(value, 0.25),
+              y50 = median(value),
+              y75 = quantile(value, 0.75),
+              y100 = max(value), 
+              .groups = "drop"
+    )
+}
+
+geom_boxplot5num = function(){
+  geom_boxplot(aes(
+    ymin = y0,
+    lower = y25,
+    middle = y50,
+    upper = y75,
+    ymax = y100
+  ),
+  stat = "identity")
+}
+```
+
+```{r}
+perks_long_all = incomes %>%
+  select(aid, starts_with("perks")) %>%
+  pivot_longer(cols = starts_with("perks"),
+               names_to = "perk",
+               values_to =  "value")
+
+perks_long_all %>%
+  five_nums(perk) %>%
+  ggplot(aes(x = reorder(perk, y50))) +
+  facet_grid(aid ~ .) +
+  geom_boxplot5num() +
+  coord_flip()  +
+  labs(title = "Indenizações para todos na folha",
+       x = "Indenização",
+       y = "Valor em milhares de R$")
+```
+
+```{r}
+perks_long = incomes %>%
+  filter(active, type == "membro") %>% 
+  select(aid, name, month, year, starts_with("perks")) %>%
+  pivot_longer(cols = starts_with("perks"),
+               names_to = "perk",
+               values_to =  "value")
+
+perks_long %>% 
+  five_nums(perk) %>% 
+  ggplot(aes(x = reorder(perk, y50))) + 
+  facet_grid(aid ~ .) + 
+  geom_boxplot(
+   aes(ymin = y0, lower = y25, middle = y50, upper = y75, ymax = y100),
+   stat = "identity"
+  ) +
+  coord_flip() + 
+  labs(title = "Indenizações para membros ativos", 
+       x = "Indenização", 
+       y = "Valor em milhares de R$")
+```
+
+Os maiores entre membros ativos:
+
+```{r}
+perks_long %>% 
+  filter(!is.na(value), value > 0) %>% 
+  ungroup() %>% 
+  group_by(aid, perk) %>% 
+  slice_max(1, value) %>% 
+  arrange(-value) %>% 
+  reactable::reactable()
+```
+
+
+
+```{r}
+incomes %>% 
+  filter(active, type == "membro") %>%
+  select(aid, starts_with("funds")) %>% 
+  pivot_longer(cols = starts_with("funds"), names_to = "fund", values_to =  "value") %>% 
+  five_nums(fund) %>% 
+  ggplot(aes(x = reorder(fund, y50))) + 
+  facet_grid(aid ~ .) + 
+  geom_boxplot(
+   aes(ymin = y0, lower = y25, middle = y50, upper = y75, ymax = y100),
+   stat = "identity"
+  ) +
+  coord_flip() + 
+  labs(title = "Benefícios para membros ativos", 
+       x = "Indenização", 
+       y = "Valor em milhares de R$")
+```
+
+
+
+## Remuneração no geral
+
+```{r}
+per_reg = incomes %>% 
+  filter(active, type == "membro") %>% 
+  mutate(id = paste(reg, name)) %>% 
+  group_by(aid, id) %>% 
+  summarise(mean(income_total), max(income_total), mean(wage), max(wage), n = n(), .groups = "drop") %>% 
+  filter(n >= 6) 
+```
+
+```{r}
+per_reg %>%
+  ggplot(aes(x = reorder(aid,-`max(income_total)`), y = `max(income_total)` / 1e3)) +
+  geom_quasirandom(
+    size = .8,
+    alpha = .8,
+    color = "#B361CA",
+    width = .3
+  ) +
+  ylim(0, 180) +
+  coord_flip() +
+  labs(
+    title = "Maior remuneração recebida em um mês",
+    subtitle = "Membros ativos por pelo menos 6 meses",
+    x = "",
+    y = "Remuneração total (em milhares de R$)"
+  )
+```
+
+```{r}
+per_reg %>%
+  ggplot(aes(x = reorder(aid,-`max(income_total)`), y = `mean(income_total)` / 1e3)) +
+  geom_quasirandom(
+    size = .8,
+    alpha = .8,
+    color = "#3e5363",
+    width = .3
+  ) +
+  coord_flip() +
+  ylim(0, 180) +
+  labs(
+    title = "Remuneração média recebida em um mês",
+    subtitle = "Membros ativos por pelo menos 6 meses",
+    x = "",
+    y = "Valor em milhares de R$"
+  )
+```
+
