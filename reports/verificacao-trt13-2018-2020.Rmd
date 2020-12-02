@@ -1,0 +1,225 @@
+---
+title: "Verificação dos Dados de Remuneração do TRT13 de 2018 a 2020"
+
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    css: './prettydoc-cayman.css'
+    highlight: github
+    df_print: paged
+---
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+library(here)
+library(tidyverse)
+
+options(scipen=999)
+
+dados <- read_csv(here("dados/ready/incomes-all.csv"))
+
+dados_filtrados <- dados %>%
+  filter(aid != "mppb") %>%
+  filter(aid != "tjpb") 
+```
+
+# Paraíba
+## TRT13 - 2018 a 2020
+### Verificando colunas
+#### Agency ID
+Todas as linhas possuem um valor para a coluna **aid**, e ele é sempre igual a "mppb", "trt13" ou "tjpb".
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+total <- dados_filtrados %>%
+  count(aid) %>%
+  pull(n)
+
+aid <- dados_filtrados %>%
+  filter(aid == "trt13") %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, aid)
+```
+#### Month
+O valor de **month** é maior que 0 e menor que 13 em todas as linhas do TRT13 (o json diz que o mínimo deve ser 0, e o máximo 12, possível erro)
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+count_month <- dados_filtrados %>%
+  filter(month > 0 && month < 13) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, count_month)
+```
+#### Year
+O valor de **year** é igual a 2018, 2019 ou 2020 em todas as linhas do TRT13 (o json diz que o mínimo deve ser 0, possível erro(?))
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+count_year <- dados_filtrados %>%
+  filter(year == 2018 || year == 2019 || year == 2020) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, count_year)
+```
+#### Name
+Todas as linhas do TRT13 possuem um valor para a coluna **name** 
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_names <- dados_filtrados %>%
+  filter(!is.null(name)) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, check_names)
+```
+#### Role
+Todas as linhas do TRT13 possuem um valor para a coluna **role**
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_roles <- dados_filtrados %>%
+  filter(!is.null(role)) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, check_roles)
+```
+#### Type
+As linhas da coluna **type**, segundo o json, devem ser de um dos seguintes tipos: "servidor", "membro", "pensionista" ou "indefinido".
+Os tipos presentes no TRT13 são: "servidor", "membro" e "pensionista". Cumprem a restrição.
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+distribuição_dos_trt13 <- dados_filtrados %>% 
+  filter(aid == "trt13") %>% 
+  group_by(type) %>% 
+  count() %>%
+  pull(type)
+
+distribuição_dos_trt13 %>%
+  knitr::kable()
+```
+
+Todas as linhas do TRT13 possuem um valor para a coluna **type**
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_types <- dados_filtrados %>%
+  filter(!is.null(type)) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, check_types)
+```
+#### Income Total
+Todas as linhas do TRT13 possuem um valor maior ou igual a 0 para a coluna **income_total**
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_income_total <- dados_filtrados %>%
+  filter(!is.null(income_total)) %>%
+  filter(income_total >= 0) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, check_income_total)
+```
+Existem **5** linhas negativas nesta coluna (**income_total**), o que vai contra a constraint presente no package.json. Provável erro.
+A soma das linhas negativas com as linhas que atendem à assertiva anterior é igual ao valor total de linhas do TRT13.
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_income_negatives <- dados_filtrados %>%
+  filter(!is.null(income_total)) %>%
+  filter(income_total < 0) %>%
+  count() %>%
+  pull(n)
+
+check_income_total <- check_income_negatives + check_income_total
+assertthat::are_equal(total, check_income_total)
+```
+#### Perks Total
+Todas as linhas do TRT13 possuem um valor maior ou igual a 0 para a coluna **perks_total**
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_perks_total <- dados_filtrados %>%
+  filter(!is.null(perks_total)) %>%
+  filter(perks_total >= 0) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, check_perks_total)
+```
+Existem **128** linhas negativas nesta coluna (**perks_total**), o que vai contra a constraint presente no package.json. Provável erro.
+A soma das linhas negativas com as linhas que atendem à assertiva anterior é igual ao valor total de linhas do TRT13.
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_perks_negatives <- dados_filtrados %>%
+  filter(!is.null(perks_total)) %>%
+  filter(perks_total < 0) %>%
+  count() %>%
+  pull(n)
+
+check_perks_total <- check_perks_negatives + check_perks_total
+assertthat::are_equal(total, check_perks_total)
+```
+#### Sum of all funds
+Todas as linhas do TRT13 possuem um valor maior ou igual a 0 para a coluna **funds_total**
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_funds_total <- dados_filtrados %>%
+  filter(!is.null(funds_total)) %>%
+  filter(funds_total >= 0) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, check_funds_total)
+```
+Existem **968** linhas negativas nesta coluna (**funds_total**), o que vai contra a constraint presente no package.json. Provável erro.
+A soma das linhas negativas com as linhas que atendem à assertiva anterior é igual ao valor total de linhas do TRT13.
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_funds_negatives <- dados_filtrados %>%
+  filter(!is.null(funds_total)) %>%
+  filter(funds_total < 0) %>%
+  count() %>%
+  pull(n)
+
+check_funds_total <- check_funds_negatives + check_funds_total
+assertthat::are_equal(total, check_funds_total)
+```
+#### Total discounts
+Todas as linhas do TRT13 possuem um valor maior ou igual a 0 para a coluna **discounts_total**
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_discounts_total <- dados_filtrados %>%
+  filter(!is.null(discounts_total)) %>%
+  filter(discounts_total >= 0) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, check_discounts_total)
+```
+Existem **15831** linhas negativas nesta coluna (**discounts_total**), o que vai contra a constraint presente no package.json. Provável erro.
+A soma das linhas negativas com as linhas que atendem à assertiva anterior é igual ao valor total de linhas do TRT13.
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_discounts_negatives <- dados_filtrados %>%
+  filter(!is.null(discounts_total)) %>%
+  filter(discounts_total < 0) %>%
+  count() %>%
+  pull(n)
+
+check_discounts_total <- check_discounts_negatives + check_discounts_total
+assertthat::are_equal(total, check_discounts_total)
+```
+#### Social security discounts
+Todas as linhas possuem um valor maior ou igual a 0 para a coluna **discount_prev_contribution** (No json a variavel está escrita "discounts_prev_contribution", possível erro)
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_discount_prev_contribution <- dados_filtrados %>%
+  filter(!is.null(discount_prev_contribution)) %>%
+  filter(discount_prev_contribution >= 0) %>%
+  count() %>%
+  pull(n)
+
+assertthat::are_equal(total, check_discount_prev_contribution)
+```
+Existem **15409** linhas negativas nesta coluna (**discount_prev_contribution**), o que vai contra a constraint presente no package.json. Provável erro.
+A soma dessas linhas com as linhas que atendem à assertiva anterior é igual ao valor total de linhas do TRT13.
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+check_prev_negatives <- dados_filtrados %>%
+  filter(!is.null(discount_prev_contribution)) %>%
+  filter(discount_prev_contribution < 0) %>%
+  count() %>%
+  pull(n)
+
+check_prev_total <- check_prev_negatives + check_discount_prev_contribution
+assertthat::are_equal(total, check_prev_total)
+```
+
+#### Demais colunas
+A coluna **workspace** está preenchida "worklplace" no package.json. Possível erro.
+As colunas **reg**, **workspace**, **active**, **wage**, **perks_food**, **perks_vacation**, **perks_transportation**,  **perks_pre_school**, **perks_health**, **perks_birth**, **perks_housing**,  **perks_subsistence**, **perks_compensatory_leave**, **perks_pecuniary**, **perks_vacation_pecuniary**,  **perks_furniture_transport**, **perks_premium_license_pecuniary**, **funds_personal_benefits** (21 negativos), **funds_eventual_benefits** (140 negativos),  **funds_trust_position**, **funds_daily**, **funds_gratification**, **funds_origin_pos**, **funds_others_total**,  **discounts_ceil_retention** (4 negativos), **discounts_income_tax** (14745 negativos) e **discounts_others_total** não possuem nenhum tipo de regra de preenchimento no package.
+
+<div class="logo">![](https://avatars2.githubusercontent.com/u/17051677?s=200&v=4)</div>
