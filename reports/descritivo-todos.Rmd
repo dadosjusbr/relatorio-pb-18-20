@@ -22,9 +22,10 @@ set.seed(1014)
 options(digits = 2, scipen = 999)
 ```
 
+Como lidar com 13o?
 
 ```{r}
-incomes = read_csv(
+incomes_raw = read_csv(
   here::here("dados/ready/incomes-all.csv"),
   col_types = cols(
     aid = col_character(),
@@ -40,8 +41,18 @@ incomes = read_csv(
   )
 )
 
-incomes = incomes %>% 
-  mutate(date = lubridate::ymd(paste(year, month, "01")))
+incomes = incomes_raw %>%
+  mutate(
+    date = lubridate::ymd(paste(year, month, "01")),
+    perks_except_daily = perks_total,
+    perks_total = perks_total + if_else(!is.na(funds_daily) &
+                                          (funds_daily > 0), funds_daily, 0),
+    funds_total = funds_total - if_else(!is.na(funds_daily) &
+                                          (funds_daily > 0), funds_daily, 0)
+  ) %>%
+  rename(perks_daily = funds_daily)
+
+skimr::skim(incomes)
 ```
 
 ## Contagem dos registros
@@ -178,17 +189,28 @@ incomes %>%
 ## Remuneração no geral
 
 ```{r}
-per_reg = incomes %>% 
-  filter(active, type == "membro") %>% 
-  mutate(id = paste(reg, name)) %>% 
-  group_by(aid, id) %>% 
-  summarise(mean(income_total), max(income_total), mean(wage), max(wage), n = n(), .groups = "drop") %>% 
+per_reg = incomes %>%
+  filter(active, type == "membro") %>%
+  mutate(
+    id = paste(reg, name),
+    total = wage + perks_except_daily + funds_total - discounts_ceil_retention
+  ) %>%
+  group_by(aid, id) %>%
+  # summarise(mean(income_total), max(income_total), mean(wage), max(wage), max(funds_total), max(perks_total), n = n(), .groups = "drop") %>%
+  summarise(
+    total_max = max(total),
+    total_mean = mean(total),
+    perks_max = max(perks_except_daily),
+    perks_mean = mean(perks_except_daily),
+    n = n(),
+    .groups = "drop"
+  ) %>%
   filter(n >= 6) 
 ```
 
 ```{r}
 per_reg %>%
-  ggplot(aes(x = reorder(aid,-`max(income_total)`), y = `max(income_total)` / 1e3)) +
+  ggplot(aes(x = reorder(aid,-total_max), y = total_max / 1e3)) +
   geom_quasirandom(
     size = .8,
     alpha = .8,
@@ -198,8 +220,8 @@ per_reg %>%
   ylim(0, 180) +
   coord_flip() +
   labs(
-    title = "Maior remuneração recebida em um mês",
-    subtitle = "Membros ativos por pelo menos 6 meses",
+    title = "Maior quantia recebida em um mês",
+    subtitle = "Salário, indenização e gratificações exceto diárias. Membros ativos durante 6+ meses.",
     x = "",
     y = "Remuneração total (em milhares de R$)"
   )
@@ -207,7 +229,33 @@ per_reg %>%
 
 ```{r}
 per_reg %>%
-  ggplot(aes(x = reorder(aid,-`max(income_total)`), y = `mean(income_total)` / 1e3)) +
+  ggplot(aes(x = reorder(aid,-total_max), y = perks_max / 1e3)) +
+  geom_quasirandom(
+    size = .8,
+    alpha = .8,
+    color = "#B361CA",
+    width = .3
+  ) +
+  ylim(0, 180) +
+  coord_flip() +
+  labs(
+    title = "Maior indenização recebida em um mês",
+    subtitle = "Indenizações exceto diárias. Geralmente auxílios.",
+    x = "",
+    y = "Remuneração total (em milhares de R$)"
+  )
+```
+
+
+Mudar diárias para indenizações onde couber
+Comparar indenizações e gratificações
+Sabemos que Indenizações durante a pandemia não incluem diárias. Elas diminuíram?
+
+
+```{r}
+per_reg %>%
+  ggplot(aes(x = reorder(aid,-total_mean), y = total_mean / 1e3)) +
+  geom_hline(yintercept = 39, color = "gray") + 
   geom_quasirandom(
     size = .8,
     alpha = .8,
