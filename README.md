@@ -2,7 +2,7 @@
 
 Código e reports de análises com os dados libertados pelo projeto. Os relatórios que já estão no ar estão em [https://dadosjusbr.github.io/analises/](https://dadosjusbr.github.io/analises/).
 
-## Para gerar um csv com todos os dados do MPPB
+## Para gerar um csv com todos os dados do MPPB, TJB e TRT13
 
 ```
 ./src/fetch.sh
