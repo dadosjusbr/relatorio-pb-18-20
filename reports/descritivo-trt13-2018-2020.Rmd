@@ -18,8 +18,7 @@ options(scipen=999)
 dados <- read_csv(here("dados/ready/incomes-all.csv"))
 
 dados_filtrados <- dados %>% 
-  filter(aid != "mppb") %>%
-  filter(aid != "tjpb") %>% 
+  filter(aid == "trt13") %>% 
   mutate(date = lubridate::ymd(paste(year, month, "01")))
 
 # skimr::skim(dados_filtrados)
@@ -32,6 +31,7 @@ dados_filtrados <- dados %>%
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 n_funcionarios_trt13 <- dados_filtrados %>% 
   filter(year == 2020 & month == 10 & aid == "trt13") %>% 
+  unique() %>%
   count() %>% 
   pull(n)
 ```
@@ -40,12 +40,11 @@ n_funcionarios_trt13 <- dados_filtrados %>%
 
 Em outubro de 2020 o TRT13 apresentava um total de **`r n_funcionarios_trt13`** funcionários.
 
-#### Por Mês
+#### Geral por mês
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
   count(aid, active, date) %>% 
-  ggplot(aes(x = date, n, fill = active)) + 
-  facet_grid(aid ~ .) + 
+  ggplot(aes(x = date, n, fill = active)) +
   geom_col() + 
   labs(title = "Registros por mês", 
        y = "Registros", 
@@ -60,8 +59,7 @@ dados_filtrados %>%
   count(aid, type, date) %>% 
   group_by(aid, date) %>% 
   mutate(prop = n / sum(n)) %>% 
-  ggplot(aes(date, prop, fill = type)) + 
-  facet_grid(aid ~ .) + 
+  ggplot(aes(date, prop, fill = type)) +
   geom_col() + 
   labs(title = "Registros dos ativos por mês", 
        y = "Proporção", 
@@ -69,224 +67,58 @@ dados_filtrados %>%
   scale_fill_brewer(palette = "Accent")
 ```
 
+#### Distribuição geral por tipo
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-distribuição_2018_trt13 <- dados_filtrados %>% 
-  filter(aid == "trt13", year == 2018, month == 10) %>% 
-  group_by(type) %>% 
-  count()
+distribuição_tipos_trt13 <- dados_filtrados %>% 
+  filter(aid == "trt13", month == 10) %>% 
+  group_by(type, year) %>% 
+  count() %>%
+  group_by(year) %>%
+  mutate(grupo = row_number()) %>%
+  pivot_wider(names_from = "year", values_from = "n") %>%
+  select(-grupo)
 
-num_membros_2018_trt13 <- distribuição_2018_trt13 %>%
-  filter(type == "membro") %>%
-  pull(n)
-
-num_pensionistas_2018_trt13 <- distribuição_2018_trt13 %>%
-  filter(type == "pensionista") %>%
-  pull(n)
-
-num_servidores_2018_trt13 <- distribuição_2018_trt13 %>%
-  filter(type == "servidor") %>%
-  pull(n)
-
-distribuição_2019_trt13 <- dados_filtrados %>% 
-  filter(aid == "trt13", year == 2019, month == 10) %>% 
-  group_by(type) %>% 
-  count()
-
-num_membros_2019_trt13 <- distribuição_2019_trt13 %>%
-  filter(type == "membro") %>%
-  pull(n)
-
-num_pensionistas_2019_trt13 <- distribuição_2019_trt13 %>%
-  filter(type == "pensionista") %>%
-  pull(n)
-
-num_servidores_2019_trt13 <- distribuição_2019_trt13 %>%
-  filter(type == "servidor") %>%
-  pull(n)
-
-distribuição_2020_trt13 <- dados_filtrados %>% 
-  filter(aid == "trt13", year == 2020, month == 10) %>% 
-  group_by(type) %>% 
-  count()
-
-num_membros_2020_trt13 <- distribuição_2020_trt13 %>%
-  filter(type == "membro") %>%
-  pull(n)
-
-num_pensionistas_2020_trt13 <- distribuição_2020_trt13 %>%
-  filter(type == "pensionista") %>%
-  pull(n)
-
-num_servidores_2020_trt13 <- distribuição_2020_trt13 %>%
-  filter(type == "servidor") %>%
-  pull(n)
+distribuição_tipos_trt13 %>%
+  rename(Tipo = type) %>%
+  knitr::kable()
 ```
 
-#### Distribuição geral 
+* Membros: É uma classificação mais ampla que abrange todo o tipo agente público que “representa” o Poder Judiciário ou o Ministério Público.
 
-No mês de outubro de 2018 o TRT13 tinha **`r num_servidores_2018_trt13`** servidores, **`r num_pensionistas_2018_trt13`** pensionistas e **`r num_membros_2018_trt13`** membros. Já no mês de outubro de 2019 o trt13 tinha **`r num_servidores_2019_trt13`** servidores, **`r num_pensionistas_2019_trt13`** pensionistas e **`r num_membros_2019_trt13`** membros. Em outubro de 2020 o trt13 tinha **`r num_servidores_2020_trt13`** servidores, **`r num_pensionistas_2020_trt13`** pensionistas e **`r num_membros_2020_trt13`** membros.
+* Servidores: Um servidor público é um funcionário da administração pública que possui um vínculo de trabalho com órgãos que fazem parte do Estado.
 
-```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-# load library
-library(ggplot2)
-
-# Create test data.
-data2 <- data.frame(
-  category=c("Membro", "Pensionista", "Servidor"),
-  count=c(97, 117, 1382)
-)
-
-# Compute percentages
-data2$fraction <- (data2$count / sum(data2$count)) * 100
-
-# Compute the cumulative percentages (top of each rectangle)
-data2$ymax <- cumsum(data2$fraction)
-
-# Compute the bottom of each rectangle
-data2$ymin <- c(0, head(data2$ymax, n=-1))
-
-# Compute label position
-data2$labelPosition <- (data2$ymax + data2$ymin) / 2
-
-# Compute a good label
-data2$label <- paste0(data2$category, "\n", round(data2$fraction, digits = 0), "%")
-
-# Make the plot
-ggplot(data2, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
-  geom_rect() +
-  geom_text(x=3.5, aes(y=labelPosition, label=label, color=category), color = "white", size=2.7) + # x here controls label position (inner / outer)
-  scale_fill_brewer(palette = "Set2") + theme_minimal() +
-  scale_color_brewer(palette = "Set2") +
-  coord_polar(theta="y") +
-  xlim(c(0.6, 4)) +
-  theme_void() + 
-  labs(fill = "Tipo de funcionário", title = "Distribuiçao dos funcionários em outubro de 2020") +
-  theme(legend.position = "none")
-```
+* Pensionistas: São beneficiários de pensão por morte de algum funcionário do poder público.
 
 ### Visão geral dos pagamentos de 2018 a 2020
 
 Os pagamentos medianos, máximos e mínimos se deram da seguinte forma.
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-mediana_salarial_2018_trt13 <- dados_filtrados %>% 
-  filter(year == 2018, aid == "trt13") %>% 
-  pull(income_total) %>% 
-  median() %>% 
-  round(2)
-
-max_salarial_2018_trt13 <- dados_filtrados %>% 
-  filter(year == 2018, aid == "trt13") %>% 
-  pull(income_total) %>% 
-  max() %>% 
-  round(2)
-
-min_salarial_2018_trt13 <- dados_filtrados %>% 
-  filter(year == 2018, aid == "trt13") %>% 
-  pull(income_total) %>% 
-  min() %>% 
-  round(2)
-
-mediana_salarial_2019_trt13 <- dados_filtrados %>% 
-  filter(year == 2019, aid == "trt13") %>% 
-  pull(income_total) %>% 
-  median() %>% 
-  round(2)
-
-max_salarial_2019_trt13 <- dados_filtrados %>% 
-  filter(year == 2019, aid == "trt13") %>% 
-  pull(income_total) %>% 
-  max() %>% 
-  round(2)
-
-min_salarial_2019_trt13 <- dados_filtrados %>% 
-  filter(year == 2019, aid == "trt13") %>% 
-  pull(income_total) %>% 
-  min() %>% 
-  round(2)
-
-mediana_salarial_2020_trt13 <- dados_filtrados %>% 
-  filter(year == 2020, aid == "trt13") %>% 
-  pull(income_total) %>% 
-  median() %>% 
-  round(2)
-
-max_salarial_2020_trt13 <- dados_filtrados %>% 
-  filter(year == 2020, aid == "trt13") %>% 
-  pull(income_total) %>% 
-  max() %>% 
-  round(2)
-
-min_salarial_2020_trt13 <- dados_filtrados %>% 
-  filter(year == 2020, aid == "trt13") %>% 
-  pull(income_total) %>% 
-  min() %>% 
-  round(2)
-
-dist <- data.frame(Mediana = c(mediana_salarial_2018_trt13, mediana_salarial_2019_trt13, mediana_salarial_2020_trt13),
-                   Máximo = c(max_salarial_2018_trt13, max_salarial_2019_trt13, max_salarial_2020_trt13),
-                   Mínimo = c(min_salarial_2018_trt13, min_salarial_2019_trt13, min_salarial_2020_trt13),
-                   stringsAsFactors = FALSE)
-rownames(dist) = c("2018","2019","2020")
-
-dist %>%
-  knitr::kable()
+visao_geral <- dados_filtrados %>%
+  ggplot(aes(x = income_total)) +
+  facet_grid(year ~ .) +
+  geom_boxplot() +
+  labs(title = "Salários para todos na folha",
+       x = "Valores",
+       y = "Anos")
+visao_geral
 ```
 
 ### Distribuição dos tipos dos gastos de 2018 a 2020
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-bar_chart_trt13_2018 <- dados_filtrados %>%
-  filter( year == 2018 & aid == "trt13") %>% 
+bar_chart_trt13 <- dados_filtrados %>%
   mutate(`Salários` = wage, `Indenizações` = perks_total, `Benefícios` = funds_total) %>%
   gather(key="type", value = "value", `Salários`, `Indenizações`, `Benefícios`) %>%
-  select(name, role, value, type, month) %>%
-  group_by(month, type) %>%
+  select(name, role, value, type, date) %>%
+  group_by(date, type) %>%
   summarise(sum = sum(value))
 
-bar_chart_trt13_2018 %>%
-  ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+bar_chart_trt13 %>%
+  ggplot(aes(fill=type, y=sum, x=date)) +
   geom_bar(position="stack", stat="identity") +
   scale_fill_brewer(palette = "Set2") + theme_minimal() +
-  labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do trt13 em 2018") +
-  scale_y_continuous(labels = scales::comma)
-```
-
-A distribuição em 2019 se assemelha muito à do ano anterior, com aumento nos pagamentos de benefícios nos meses de janeiro e dezembro.  
-
-```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-bar_chart_trt13_2019 <- dados_filtrados %>%
-  filter( year == 2019 & aid == "trt13") %>% 
-  mutate(`Salários` = wage, `Indenizações` = perks_total, `Benefícios` = funds_total) %>%
-  gather(key="type", value = "value", `Salários`, `Indenizações`, `Benefícios`) %>%
-  select(name, role, value, type, month) %>%
-  group_by(month, type) %>%
-  summarise(sum = sum(value))
-
-bar_chart_trt13_2019 %>%
-  ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
-  geom_bar(position="stack", stat="identity") +
-  scale_fill_brewer(palette = "Set2") + theme_minimal() +
-  labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do trt13 em 2019") +
-  scale_y_continuous(labels = scales::comma)
-```
-
-Até então, o mesmo comportamento em 2020. 
-
-```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-bar_chart_trt13_2020 <- dados_filtrados %>%
-  filter( year == 2020 & aid == "trt13") %>% 
-  mutate(`Salários` = wage, `Indenizações` = perks_total, `Benefícios` = funds_total) %>%
-  gather(key="type", value = "value", `Salários`, `Indenizações`, `Benefícios`) %>%
-  select(name, role, value, type, month) %>%
-  group_by(month, type) %>%
-  summarise(sum = sum(value))
-
-bar_chart_trt13_2020 %>%
-  ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
-  geom_bar(position="stack", stat="identity") +
-  scale_fill_brewer(palette = "Set2") + theme_minimal() +
-  labs(y = "Valor total", x = "Mês", fill = "Classificação", title = "Distribuições das remunerações do trt13 em 2020") +
+  labs(y = "Valor total", x = "", fill = "Classificação", title = "Distribuições das remunerações do TRT13") +
   scale_y_continuous(labels = scales::comma)
 ```
 
@@ -297,96 +129,19 @@ As indenizações, por sua vez, são valores especiais recebidos eventualmente. 
 ### Remunerações médias dos funcionários de acordo com seu tipo 
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-salario_medio_servidor_2018 <- dados_filtrados %>% 
-  filter(year == 2018, aid == "trt13", type == "servidor") %>% 
-  pull(income_total) %>% 
-  mean()  %>% 
-  round(2)
+salario_medio_por_tipo <- dados_filtrados %>% 
+  group_by(type, year) %>%
+  summarise(mean = mean(income_total)) %>%
+  mutate(grupo = row_number()) %>%
+  pivot_wider(names_from = "type", values_from = "mean") %>%
+  select(-grupo)
 
-salario_membro_2018 <- dados_filtrados %>% 
-  filter(year == 2018, aid == "trt13", type == "membro") %>% 
-  pull(income_total) %>% 
-  mean()  %>% 
-  round(2)
-
-salario_pensionista_2018 <- dados_filtrados %>% 
-  filter(year == 2018, aid == "trt13", type == "pensionista") %>% 
-  pull(income_total) %>% 
-  mean()  %>% 
-  round(2)
-
-salario_medio_servidor_2019 <- dados_filtrados %>% 
-  filter(year == 2018, aid == "trt13", type == "servidor") %>% 
-  pull(income_total) %>% 
-  mean()  %>% 
-  round(2)
-
-salario_membro_2019 <- dados_filtrados %>% 
-  filter(year == 2019, aid == "trt13", type == "membro") %>% 
-  pull(income_total) %>% 
-  mean()  %>% 
-  round(2)
-
-salario_pensionista_2019 <- dados_filtrados %>% 
-  filter(year == 2019, aid == "trt13", type == "pensionista") %>% 
-  pull(income_total) %>% 
-  mean()  %>% 
-  round(2)
-
-salario_medio_servidor_2020 <- dados_filtrados %>% 
-  filter(year == 2019, aid == "trt13", type == "servidor") %>% 
-  pull(income_total) %>% 
-  mean()  %>% 
-  round(2)
-
-salario_membro_2020 <- dados_filtrados %>% 
-  filter(year == 2020, aid == "trt13", type == "membro") %>% 
-  pull(income_total) %>% 
-  mean()  %>% 
-  round(2)
-
-salario_pensionista_2020 <- dados_filtrados %>% 
-  filter(year == 2020, aid == "trt13", type == "pensionista") %>% 
-  pull(income_total) %>% 
-  mean()  %>% 
-  round(2)
-
-medias_por_tipos <- data.frame(Servidor = c(salario_medio_servidor_2018, salario_medio_servidor_2019, salario_medio_servidor_2020),
-                               Membro = c(salario_membro_2018, salario_membro_2019, salario_membro_2020),
-                               Pensionista = c(salario_pensionista_2018, salario_pensionista_2019, salario_pensionista_2020),
-                               stringsAsFactors = FALSE)
-rownames(medias_por_tipos) = c("2018","2019","2020")
-
-medias_por_tipos %>%
+salario_medio_por_tipo %>%
+  rename(Ano = year) %>%
   knitr::kable()
 ```
 
 ### Distribuição das remunerações dos funcionários de acordo com seu tipo 
-
-```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-#Distribuição dos salários 2018
-dados_filtrados %>%
-  filter(year == 2018 & month == 10  & aid == "trt13") %>%
-  ggplot(aes(x=type, y=income_total, color=type)) +
-  geom_violin() +
-  theme_minimal() + 
-  scale_y_log10(labels = scales::comma, breaks=c(5000, 10000, 20000, 35000, 50000, 80000, 150000, 250000)) + 
-  scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do TRT13 em outubro de 2018") 
-```
-
-```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-#Distribuição dos salários 2019
-dados_filtrados %>%
-  filter(year == 2019 & month == 10  & aid == "trt13") %>%
-  ggplot(aes(x=type, y=income_total, color=type)) +
-  geom_violin() +
-  theme_minimal() + 
-  scale_y_log10(labels = scales::comma, breaks=c(5000, 10000, 20000, 35000, 50000, 80000, 150000, 250000)) + 
-  scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do TRT13 em outubro de 2019") 
-```
-
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 #Distribuição dos salários 2020
 dados_filtrados %>%
@@ -444,30 +199,20 @@ Em maio de 2019 um Analista Judiciário recebeu um total de de **R\$ 370.603,00 
 Neste ano não se observam remunerações da mesma magnitude dos anos anteriores até então (out/2020).
 
 ### Distribuição das remunerações de 2018 a 2020
-
+#### Média dos salários por ano
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-remuneracao_media_trt13_2018 <- dados_filtrados  %>% 
-  filter(aid == "trt13" & year == 2018) %>% 
-  pull(income_total) %>% 
-  mean() %>%
-  round(2)
-
-remuneracao_media_trt13_2019 <- dados_filtrados  %>% 
-  filter(aid == "trt13" & year == 2019) %>% 
-  pull(income_total) %>% 
-  mean() %>%
-  round(2)
-
-remuneracao_media_trt13_2020 <- dados_filtrados  %>% 
-  filter(aid == "trt13" & year == 2020) %>% 
-  pull(income_total) %>% 
-  mean() %>%
-  round(2)
+salario_medio <- dados_filtrados %>% 
+  group_by(year) %>%
+  summarise(mean = mean(income_total)) %>%
+  rename(Média = mean, Ano = year)
+  
+salario_medio %>%
+  knitr::kable()
 ```
 
-As remunerações médias, de 2018, 2019 e 2020, respectivamente, foram: R\$ **`r remuneracao_media_trt13_2018`**,  R\$ **`r remuneracao_media_trt13_2019`** e  R\$ **`r remuneracao_media_trt13_2020`**.
+#### Distribuição dos salários por ano
+A distribuição das remunerações em 2018 é bastante ampla, existem funcionários com remuneração acima de **R\$ 200.000,00** e outros com remuneração abaixo de **R\$ 5.000,00**. A média salárial foi de **R\$ 19.316,00**
 
-A distribuição das remunerações em 2018 é bastante ampla, existem funcinários com remunerações acima de **R\$ 200.000,00** e outros com remuneração abaixo de **R\$ 5.000,00**. A média salárial foi de **R\$ 19.316,00**
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
   filter(aid == "trt13", year == 2018) %>% 
@@ -479,7 +224,8 @@ dados_filtrados %>%
   annotate("text", label = "Remuneração media de 2018", x = 3, y = 13, color = "#111111") 
 ```
 
-Em 2019 existem funcinários com remunerações acima de **R\$ 300.000,00** e outros com remuneração abaixo de **R\$ 5.000,00**. A média salárial foi de **R\$ 20.568,00**
+Em 2019 existem funcinários com remuneração acima de **R\$ 300.000,00** e outros com remuneração abaixo de **R\$ 5.000,00**. A média salárial foi de **R\$ 20.568,00**
+
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
   filter(aid == "trt13", year == 2019) %>% 
@@ -490,7 +236,9 @@ dados_filtrados %>%
   geom_point(aes(x = 20.568), size = 4, color = "#111111", shape = 124) +
   annotate("text", label = "Remuneração media de 2019", x = 3, y = 13, color = "#111111") 
 ```
-Em 2020 existem funcinários com remunerações acima de **R\$ 100.000,00** e outros com remuneração abaixo de **R\$ 5.000,00**. A média salárial foi de **R\$ 19.458,00**, até então.
+
+Em 2020 existem funcinários com remuneração acima de **R\$ 100.000,00** e outros com remuneração abaixo de **R\$ 5.000,00**. A média salárial foi de **R\$ 19.458,00**, até então.
+
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
   filter(aid == "trt13", year == 2020) %>% 
@@ -503,7 +251,7 @@ dados_filtrados %>%
 ```
 
 ### Distribuição das remunerações por cargo
-Os Juízes do TRT13 são os que apresentam as melhores remunerações. Logo após estão os Analistas Judiciários. Em terceiro têm-se os Técnicos Judiciários. As categorias Sem Vínculo, Auxiliar Judiciário e e Outros são minoria no TRT13 e apresentam as menores remunerações.
+Os Juízes do TRT13 são os que apresentam as maiores remunerações. Logo após estão os Analistas Judiciários. Em terceiro têm-se os Técnicos Judiciários. As categorias Sem Vínculo, Auxiliar Judiciário e e Outros são minoria no TRT13 e apresentam as menores remunerações.
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 library(stringr)
@@ -522,39 +270,11 @@ dados_normalized_role <- dados_filtrados %>%
   )
 
 dados_normalized_role  %>% 
-  filter(year == 2018 & month == 10 & aid == "trt13" & income_total < 60000) %>%
-  ggplot(aes(x=normalized_role, y=income_total, color=normalized_role)) +
-  theme_minimal() + 
-  scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.3)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração", title = "Remunerações por cargos em Out de 2019 no TRT13") + 
-  coord_flip() + 
-  scale_y_continuous(breaks= c(0,10000,20000,30000,40000,50000,60000)) +
-  stat_summary(fun.y = median, colour = "#F25E4B", geom = "point", size = 1) 
-```
-
-O comportamento em 2019 é semelhante ao de 2018.
-
-```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-dados_normalized_role  %>% 
-  filter(year == 2019 & month == 10 & aid == "trt13" & income_total < 60000) %>%
-  ggplot(aes(x=normalized_role, y=income_total, color=normalized_role)) +
-  theme_minimal() + 
-  scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.3)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Remunerações por cargos em Out de 2019 no TRT13") + 
-  coord_flip() + 
-  scale_y_continuous(breaks= c(0,10000,20000,30000,40000,50000,60000)) +
-  stat_summary(fun.y = median, colour = "#F25E4B", geom = "point", size = 1) 
-```
-
-Bem como o de 2020. Não observa-se grandes variações nas remunerações por cargos ao longo dos anos.
-
-```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-dados_normalized_role  %>% 
   filter(year == 2020 & month == 10 & aid == "trt13" & income_total < 60000) %>%
   ggplot(aes(x=normalized_role, y=income_total, color=normalized_role)) +
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.3)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Remunerações por cargos em out de 2020 no TRT13") + 
+  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.3)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Remunerações por cargos em out de 2020") + 
   coord_flip() + 
   scale_y_continuous(breaks= c(0,10000,20000,30000,40000,50000,60000)) +
   stat_summary(fun.y = median, colour = "#F25E4B", geom = "point", size = 1) 
@@ -563,62 +283,21 @@ dados_normalized_role  %>%
 ### Distribuição dos tipos de auxílios e indenizações
 #### Benefícios
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-personal_2018 <- dados_filtrados %>%
-  filter(year == 2018) %>%
-  filter(!is.null(funds_personal_benefits)) %>%
-  summarise(sum = sum(funds_personal_benefits)) %>%
-  pull(sum)
-eventual_2018 <- dados_filtrados %>%
-  filter(year == 2018) %>%
-  filter(!is.null(funds_eventual_benefits)) %>%
-  summarise(sum = sum(funds_eventual_benefits)) %>%
-  pull(sum)
+beneficios_por_ano <- dados_filtrados %>% 
+  select(year, starts_with("funds")) %>%
+  pivot_longer(cols = starts_with("funds"),
+               names_to = "fund",
+               values_to =  "value") %>%
+  group_by(fund, year) %>%
+  summarise(soma = sum(value)) %>%
+  mutate(grupo = row_number()) %>%
+  pivot_wider(names_from = "fund", values_from = "soma") %>%
+  select(-grupo)
 
-personal_2019 <- dados_filtrados %>%
-  filter(year == 2019) %>%
-  filter(!is.null(funds_personal_benefits)) %>%
-  summarise(sum = sum(funds_personal_benefits)) %>%
-  pull(sum)
-eventual_2019 <- dados_filtrados %>%
-  filter(year == 2019) %>%
-  filter(!is.null(funds_eventual_benefits)) %>%
-  summarise(sum = sum(funds_eventual_benefits)) %>%
-  pull(sum)
-
-personal_2020 <- dados_filtrados %>%
-  filter(year == 2020) %>%
-  filter(!is.null(funds_personal_benefits)) %>%
-  summarise(sum = sum(funds_personal_benefits)) %>%
-  pull(sum)
-eventual_2020 <- dados_filtrados %>%
-  filter(year == 2020) %>%
-  filter(!is.null(funds_eventual_benefits)) %>%
-  summarise(sum = sum(funds_eventual_benefits)) %>%
-  pull(sum)
-
-# Todos 0
-trust_2020 <- dados_filtrados[!is.na(dados_filtrados$funds_trust_position),] %>%
-  summarise(sum = sum(funds_trust_position)) %>%
-  pull(sum)
-daily <- dados_filtrados[!is.na(dados_filtrados$funds_daily),] %>%
-  summarise(sum = sum(funds_daily)) %>%
-  pull(sum)
-gratification <- dados_filtrados[!is.na(dados_filtrados$funds_gratification),] %>%
-  summarise(sum = sum(funds_gratification)) %>%
-  pull(sum)
-origin_pos <- dados_filtrados[!is.na(dados_filtrados$funds_origin_pos),] %>%
-  summarise(sum = sum(funds_origin_pos)) %>%
-  pull(sum)
-others_total <- dados_filtrados[!is.na(dados_filtrados$funds_others_total),] %>%
-  summarise(sum = sum(funds_others_total)) %>%
-  pull(sum)
-
-benef <- data.frame(`Benefícios Permanentes`  = c(personal_2018, personal_2019, personal_2020),
-                    `Benefícios Eventuais` = c(eventual_2018, eventual_2019, eventual_2020),
-                    stringsAsFactors = FALSE)
-rownames(benef) = c("2018","2019","2020")
-
-benef %>%
+#remove colunas vazias
+beneficios_por_ano %>%
+  select(year, funds_eventual_benefits, funds_personal_benefits, funds_total) %>%
+  rename(Ano = year, 'Benefícios Eventuais' = funds_eventual_benefits, 'Benefícios Pessoais' = funds_personal_benefits, 'Total' = funds_total) %>%
   knitr::kable()
 ```
 
@@ -627,101 +306,43 @@ Benefícios Permanentes (funds_personal_benefits) são os benefícios adquiridos
 Os outros benefícios, **funds_trust_position**, **funds_daily**,	**funds_gratification**,	**funds_origin_pos** e **funds_others_total**, não possuem valores associados, em todos os anos.
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-bar_chart_trt13_2020 <- dados_filtrados %>%
-  filter( year == 2018 & aid == "trt13") %>% 
+bar_chart_trt13 <- dados_filtrados %>%
   mutate(`Permanentes` = funds_personal_benefits, `Bônus e Férias` = funds_eventual_benefits) %>%
   gather(key="type", value = "value", `Permanentes`, `Bônus e Férias`) %>%
-  select(name, role, value, type, month) %>%
-  group_by(month, type) %>%
+  select(name, role, value, type, date) %>%
+  group_by(date, type) %>%
   summarise(sum = sum(value)) 
 
-bar_chart_trt13_2020 %>%
-  ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
+bar_chart_trt13 %>%
+  ggplot(aes(fill=type, y=sum, x=date)) +
   geom_bar(position="stack", stat="identity") +
   scale_fill_brewer(palette = "Set2") + theme_minimal() +
-  labs(y = "Valor total", x = "Mês", fill = "Tipo de Benefício", title = "Distribuições dos benefícios do TRT13 em 2018") +
+  labs(y = "Valor total", x = "", fill = "Tipo de Benefício", title = "Distribuições dos benefícios do TRT13 em 2018") +
   scale_y_continuous(labels = scales::comma)
 ```
 
-A fonte principal dos aumentos nos benefícios em janeiro e dezembro são benefícios eventuais, como bônus e férias (funds_eventual_benefits).
-```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-bar_chart_trt13_2020 <- dados_filtrados %>%
-  filter( year == 2019 & aid == "trt13") %>% 
-  mutate(`Permanentes` = funds_personal_benefits, `Bônus e Férias` = funds_eventual_benefits) %>%
-  gather(key="type", value = "value", `Permanentes`, `Bônus e Férias`) %>%
-  select(name, role, value, type, month) %>%
-  group_by(month, type) %>%
-  summarise(sum = sum(value)) 
+A fonte principal dos aumentos nos benefícios recorrentes em janeiro e dezembro são benefícios eventuais, como bônus e férias (funds_eventual_benefits).
 
-bar_chart_trt13_2020 %>%
-  ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
-  geom_bar(position="stack", stat="identity") +
-  scale_fill_brewer(palette = "Set2") + theme_minimal() +
-  labs(y = "Valor total", x = "Mês", fill = "Tipo de Benefício", title = "Distribuições dos benefícios do TRT13 em 2019") +
-  scale_y_continuous(labels = scales::comma)
-```
-
-Observa-se uma diminuição, em janeiro, no total de benefícios eventuais recebidos, em comparação com os anos anteriores.
-
-```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
-bar_chart_trt13_2020 <- dados_filtrados %>%
-  filter( year == 2020 & aid == "trt13") %>% 
-  mutate(`Permanentes` = funds_personal_benefits, `Bônus e Férias` = funds_eventual_benefits) %>%
-  gather(key="type", value = "value", `Permanentes`, `Bônus e Férias`) %>%
-  select(name, role, value, type, month) %>%
-  group_by(month, type) %>%
-  summarise(sum = sum(value)) 
-
-bar_chart_trt13_2020 %>%
-  ggplot(aes(fill=type, y=sum, x=as.factor(month))) +
-  geom_bar(position="stack", stat="identity") +
-  scale_fill_brewer(palette = "Set2") + theme_minimal() +
-  labs(y = "Valor total", x = "Mês", fill = "Tipo de Benefício", title = "Distribuições dos benefícios do TRT13 em 2020") +
-  scale_y_continuous(labels = scales::comma)
-```
+Observa-se uma diminuição, em janeiro de 2020, no total de benefícios eventuais recebidos, em comparação com os anos anteriores.
 
 #### Indenizações
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+indenizacoes_por_ano <- dados_filtrados %>% 
+  select(year, starts_with("perks")) %>%
+  pivot_longer(cols = starts_with("perks"),
+               names_to = "perk",
+               values_to =  "value") %>%
+  group_by(perk, year) %>%
+  summarise(soma = sum(value)) %>%
+  mutate(grupo = row_number()) %>%
+  pivot_wider(names_from = "perk", values_from = "soma") %>%
+  select(-grupo)
 
-food <- dados_filtrados[!is.na(dados_filtrados$perks_food),] %>%
-  summarise(sum = sum(perks_housing)) %>%
-  pull(sum)
-health <- dados_filtrados[!is.na(dados_filtrados$perks_health),] %>%
-  summarise(sum = sum(perks_housing)) %>%
-  pull(sum)
-compensatory_leave <- dados_filtrados[!is.na(dados_filtrados$perks_compensatory_leave),] %>%
-  summarise(sum = sum(perks_housing)) %>%
-  pull(sum)
-pecuniary <- dados_filtrados[!is.na(dados_filtrados$perks_pecuniary),] %>%
-  summarise(sum = sum(perks_housing)) %>%
-  pull(sum)
-birth <- dados_filtrados[!is.na(dados_filtrados$perks_birth),] %>%
-  summarise(sum = sum(perks_housing)) %>%
-  pull(sum)
-housing <- dados_filtrados[!is.na(dados_filtrados$perks_housing),] %>%
-  summarise(sum = sum(perks_housing)) %>%
-  pull(sum)
-vacation <- dados_filtrados[!is.na(dados_filtrados$perks_vacation),] %>%
-  summarise(sum = sum(perks_vacation)) %>%
-  pull(sum)
-transportation <- dados_filtrados[!is.na(dados_filtrados$perks_transportation),] %>%
-  summarise(sum = sum(perks_transportation)) %>%
-  pull(sum)
-pre_school <- dados_filtrados[!is.na(dados_filtrados$perks_pre_school),] %>%
-  summarise(sum = sum(perks_pre_school)) %>%
-  pull(sum)
-subsistence <- dados_filtrados[!is.na(dados_filtrados$perks_subsistence),] %>%
-  summarise(sum = sum(perks_subsistence)) %>%
-  pull(sum)
-vacation_pecuniary <- dados_filtrados[!is.na(dados_filtrados$perks_vacation_pecuniary),] %>%
-  summarise(sum = sum(perks_vacation_pecuniary)) %>%
-  pull(sum)
-furniture_transport <- dados_filtrados[!is.na(dados_filtrados$perks_furniture_transport),] %>%
-  summarise(sum = sum(perks_furniture_transport)) %>%
-  pull(sum)
-premium_license_pecuniary <- dados_filtrados[!is.na(dados_filtrados$perks_premium_license_pecuniary),] %>%
-  summarise(sum = sum(perks_premium_license_pecuniary)) %>%
-  pull(sum)
+#remove colunas vazias
+indenizacoes_por_ano %>%
+  select(year, perks_total) %>%
+  rename(Ano = year, 'Total' = perks_total) %>%
+  knitr::kable()
 ```
 
 O único valor presente é o referente ao total das indenizações (perks_total). As indenizações específicas não possuem valores associados. **perks_pecuniary**, **perks_food**, **perks_health**, **perks_compensatory_leave**, **perks_birth**, **perks_housing**, **perks_subsistence**, **perks_vacation**,	**perks_transportation**,	**perks_pre_school**, **perks_vacation_pecuniary**, **perks_furniture_transport**, **perks_premium_license_pecuniary** são todos NA, em todos os anos.
