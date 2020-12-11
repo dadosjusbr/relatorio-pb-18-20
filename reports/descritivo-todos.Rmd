@@ -17,12 +17,12 @@ theme_set(theme_ipsum_rc())
 knitr::opts_chunk$set(tidy = FALSE, 
                       echo = FALSE,
                       warning = FALSE, 
+                      fig.height = 8,
                       fig.width = 8)
 set.seed(1014)
 options(digits = 2, scipen = 999)
 ```
 
-Como lidar com 13o?
 
 ```{r}
 incomes_raw = read_csv(
@@ -52,7 +52,10 @@ incomes = incomes_raw %>%
   ) %>%
   rename(perks_daily = funds_daily)
 
-skimr::skim(incomes)
+# incomes %>% 
+#   write_csv(here::here("dados/export/incomes-fixed-daily.csv"))
+
+# skimr::skim(incomes)
 ```
 
 ## Contagem dos registros
@@ -61,16 +64,19 @@ skimr::skim(incomes)
 incomes %>% 
   count(aid, active, date) %>% 
   ggplot(aes(x = date, n, fill = active)) + 
-  facet_grid(aid ~ .) + 
+  facet_grid(reorder(aid, -n) ~ .) + 
   geom_col() + 
   labs(title = "Registros por mês", 
        y = "Registros", 
        x = "")
 ```
 
+O TRE-PB não discrimina os tipos de cargos (membros, servidores...)
+
 ```{r}
 incomes %>% 
   filter(active) %>% 
+  mutate(type = replace_na(type, "informação faltante")) %>% 
   count(aid, type, date) %>% 
   group_by(aid, date) %>% 
   mutate(prop = n / sum(n)) %>% 
@@ -80,7 +86,21 @@ incomes %>%
   labs(title = "Registros dos ativos por mês", 
        y = "Proporção", 
        x = "") + 
-  scale_fill_brewer(palette = "Accent")
+  scale_fill_brewer(palette = "Set3")
+```
+
+## Totais por mês
+
+```{r}
+incomes %>% 
+  group_by(aid, active, date) %>% 
+  summarise(total = sum(income_total), .groups = "drop") %>% 
+  ggplot(aes(x = date, total/1e6, fill = active)) + 
+  facet_grid(reorder(aid, -total) ~ .) + 
+  geom_col() + 
+  labs(title = "$ por mês", 
+       y = "Total", 
+       x = "")
 ```
 
 ## Distribuições dos valores
@@ -129,6 +149,13 @@ perks_long_all %>%
        x = "Indenização",
        y = "Valor em milhares de R$")
 ```
+```{r}
+incomes %>% 
+  filter(perks_total > 75e3) %>% 
+  reactable::reactable()
+```
+
+
 
 ```{r}
 perks_long = incomes %>%
@@ -168,7 +195,7 @@ perks_long %>%
 
 ```{r}
 incomes %>% 
-  filter(active, type == "membro") %>%
+  filter(active, type == "membro" | aid == "trepb") %>%
   select(aid, starts_with("funds")) %>% 
   pivot_longer(cols = starts_with("funds"), names_to = "fund", values_to =  "value") %>% 
   five_nums(fund) %>% 
@@ -190,7 +217,7 @@ incomes %>%
 
 ```{r}
 per_reg = incomes %>%
-  filter(active, type == "membro") %>%
+  filter(active, type == "membro" | aid == "trepb") %>%
   mutate(
     id = paste(reg, name),
     total = wage + perks_except_daily + funds_total - discounts_ceil_retention
@@ -236,7 +263,7 @@ per_reg %>%
     color = "#B361CA",
     width = .3
   ) +
-  ylim(0, 180) +
+  # ylim(0, 180) +
   coord_flip() +
   labs(
     title = "Maior indenização recebida em um mês",
@@ -246,8 +273,33 @@ per_reg %>%
   )
 ```
 
+```{r}
+per_month = incomes %>%
+  filter(active, type == "membro" | aid == "trepb") %>%
+  mutate(
+    id = paste(reg, name),
+    total = wage + perks_except_daily + funds_total - discounts_ceil_retention
+  ) %>%
+  group_by(aid, date) %>%
+  # summarise(mean(income_total), max(income_total), mean(wage), max(wage), max(funds_total), max(perks_total), n = n(), .groups = "drop") %>%
+  summarise(
+    total_max = max(total),
+    total_mean = mean(total),
+    perks_max = max(perks_except_daily),
+    perks_mean = mean(perks_except_daily),
+    n = n(),
+    .groups = "drop"
+  )
 
-Mudar diárias para indenizações onde couber
+per_month %>% 
+  ggplot(aes(x = date, y = perks_max / 1e3, group = aid, color = aid)) +
+  facet_wrap(~aid) +
+  geom_point(size = 1) + 
+  theme(legend.position = "None")
+```
+
+
+Criar gratificações exceto 13o e férias
 Comparar indenizações e gratificações
 Sabemos que Indenizações durante a pandemia não incluem diárias. Elas diminuíram?
 
@@ -270,5 +322,21 @@ per_reg %>%
     x = "",
     y = "Valor em milhares de R$"
   )
+```
+
+
+```{r}
+incomes %>% 
+  slice_max(order_by = perks_pecuniary, 
+            n = 10) %>% 
+  select(ano = year, `mês` = month, nome = name, `matrícula` = reg, `pecúnia` = perks_pecuniary) %>% 
+  write_csv("~/maiores-pecunias.csv")
+```
+
+```{r}
+incomes %>% 
+  filter(aid == "trt13", income_total > 1e5) %>% 
+  select(year, month, name, role, type, active, income_total, perks_total, funds_total, funds_eventual_benefits) %>% 
+  write_csv("~/maiores-beneficios_eventuais_trt.csv")
 ```
 
