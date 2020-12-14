@@ -146,52 +146,45 @@ salario_medio_por_tipo %>%
 #Distribuição dos salários 2020
 dados_filtrados %>%
   filter(year == 2020 & month == 10  & aid == "trt13") %>%
-  ggplot(aes(x=type, y=income_total, color=type)) +
+  ggplot(aes(x = type, y = income_total, color = type)) +
   geom_violin() +
   theme_minimal() + 
   scale_y_log10(labels = scales::comma, breaks=c(5000, 10000, 20000, 35000, 50000, 80000, 150000, 250000)) + 
   scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.2)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Distribuição das remunerações do TRT13 em outubro de 2020") 
+  ggbeeswarm::geom_quasirandom(shape = 16, alpha= 0.5, position = position_jitter(0.2)) + 
+  labs(x = "", color = "Tipo  de funcionário", y = "Remuneração", title = "Distribuição das remunerações do TRT13 em outubro de 2020") 
 ```
 
 ### Valores que chamam atenção
 #### 2018
-Neste ano 13 remunerações foram maiores que R\$ 150.000,00, três delas estão descritas abaixo. 
+Neste ano 13 remunerações foram maiores que R\$ 150.000,00. 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
   filter(aid == "trt13" & year == 2018) %>% 
-  ggplot(aes(x=" ", y=income_total, color = aid )) +
-  ggbeeswarm::geom_quasirandom(alpha=0.6) + 
+  mutate(highs = income_total >= 150000) %>% 
+  ggplot(aes(x = " ", y = income_total, color = if_else(highs, "#F25E4B", aid))) +
+  ggbeeswarm::geom_quasirandom(alpha = 0.6) + 
   theme_minimal() + 
-  scale_color_brewer(palette = "Set2") + theme(legend.position = "none") + labs(x ="", y = "Remuneração Total") + scale_y_continuous(labels = scales::comma) + 
-  stat_summary(fun.y = max, colour = "#F25E4B", geom = "point", size = 4) +
-  geom_point(aes(y=210527), colour ="#F25E4B", size = 4 ) +
-  geom_point(aes(y=200846), colour ="#F25E4B", size = 4 ) +
-  geom_point(aes(y=188220), colour ="#F25E4B", size = 4 ) +
-  annotate("text", label = "Analista Judiciário, inativo em nov", x = 1.25, y = 210527, color = "#111111") +
-  annotate("text", label = "Juiz Togado do TRT, inativo em dez", x = 1.25, y = 	200846, color = "#111111") +
-  annotate("text", label = "Juiz Titular da Vara, inativo em dez", x = 1.25, y = 	188220, color = "#111111")
+  theme(legend.position = "none") + 
+  labs(x = "", y = "Remuneração Total") + 
+  scale_y_continuous(labels = scales::comma)
 ```
 Em novembro de 2018 um Analista Judiciário recebeu um total de de **R\$ 210.527,00**. Desse valor, **R\$ 17.442,00** foi recebido como salário e **R\$ -910,44** como indenizações. Como benefícios foi recebido um valor de **R\$ 193.995,00**, maior parte deste foi atribuída como **vantagens eventuais***. Outros analistas e juízes têm uma distribuição parecida. 
 
 *Vantagens eventuais podem ser: Abono constitucional de 1/3 de férias, indenização de férias, antecipação de férias, serviço extraordinário, substituição, pagamentos retroativos, além de outras desta natureza. Valores pagos a título de Adicional de Insalubridade ou de Periculosidade, Adicional Noturno.
 
 #### 2019
-Neste ano 4 remunerações foram maiores que R\$ 150.000,00, três delas estão descritas abaixo. 
+Neste ano 4 remunerações foram maiores que R\$ 150.000,00. 
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 dados_filtrados %>% 
   filter(aid == "trt13" & year == 2019) %>% 
-  ggplot(aes(x=" ", y=income_total, color = aid )) +
+  mutate(highs = income_total >= 150000) %>% 
+  ggplot(aes(x=" ", y = income_total, color = if_else(highs, "#F25E4B", aid))) + 
   ggbeeswarm::geom_quasirandom(alpha=0.6) + 
   theme_minimal() + 
-  scale_color_brewer(palette = "Set2") + theme(legend.position = "none") + labs(x ="", y = "Remuneração Total") + scale_y_continuous(labels = scales::comma) + 
-  stat_summary(fun.y = max, colour = "#F25E4B", geom = "point", size = 4) +
-  geom_point(aes(y=370604), colour ="#F25E4B", size = 4 ) +
-  geom_point(aes(y=241229), colour ="#F25E4B", size = 4 ) +
-  geom_point(aes(y=217617), colour ="#F25E4B", size = 4 ) +
-  annotate("text", label = "Analista Judiciário, inativo em maio", x = 1.25, y = 370604, color = "#111111") +
-  annotate("text", label = "Juiz Togado do TRT, inativo em dez", x = 1.25, y = 	241229, color = "#111111") +
-  annotate("text", label = "Analista Judiciário, ativo em junho", x = 1.25, y = 	217617, color = "#111111")
+  theme(legend.position = "none") + 
+  labs(x ="", y = "Remuneração Total") + 
+  scale_y_continuous(labels = scales::comma)
 ```
 Em maio de 2019 um Analista Judiciário recebeu um total de de **R\$ 370.603,00 R\$**. Desse valor foi recebido **R\$ 22.013,00** de salário, **R$ 1.804,00** em indenizações. Já em benefícios foi recebido um valor de **R\$ 346.786,00**, sendo em sua maior parte devido a **vantagens eventuais**. Outros analistas tem uma distribuição parecida no mesmo ano. 
 
@@ -219,7 +212,11 @@ dados_filtrados %>%
   ggplot(aes(x = income_total/1000, y = month, color = "trt13")) +  
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") +
-  geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 12, by = 1)) + scale_x_continuous(labels = scales::comma, trans   = "log", breaks=c(5, 10, 19, 50, 200)) + theme(legend.position = "none") + labs(x = "Valor da remuneração (em milhares R$)", y = "Mês", title = "Distribuição das remuneração em 2018") + 
+  geom_point(shape = 124, size = 6, alpha = 0.3) +
+  scale_y_continuous(breaks=seq(1, 12, by = 1)) +
+  scale_x_continuous(labels = scales::comma, trans = "log", breaks=c(5, 10, 19, 50, 200)) +
+  theme(legend.position = "none") +
+  labs(x = "Valor da remuneração (em milhares R$)", y = "Mês", title = "Distribuição das remuneração em 2018") +
   geom_point(aes(x = 19.316), size = 4, color = "#111111", shape = 124) +
   annotate("text", label = "Remuneração media de 2018", x = 3, y = 13, color = "#111111") 
 ```
@@ -232,7 +229,11 @@ dados_filtrados %>%
   ggplot(aes(x = income_total/1000, y = month, color = "trt13")) +  
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") +
-  geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 12, by = 1)) + scale_x_continuous(labels = scales::comma, trans   = "log", breaks=c(5, 10, 19, 50, 150, 350)) + theme(legend.position = "none") + labs(x = "Valor da remuneração (em milhares R$)", y = "Mês", title = "Distribuição das remuneração em 2019") + 
+  geom_point(shape = 124, size = 6, alpha=0.3) +
+  scale_y_continuous(breaks=seq(1, 12, by = 1)) +
+  scale_x_continuous(labels = scales::comma, trans = "log", breaks=c(5, 10, 19, 50, 150, 350)) +
+  theme(legend.position = "none") +
+  labs(x = "Valor da remuneração (em milhares R$)", y = "Mês", title = "Distribuição das remuneração em 2019") +
   geom_point(aes(x = 20.568), size = 4, color = "#111111", shape = 124) +
   annotate("text", label = "Remuneração media de 2019", x = 3, y = 13, color = "#111111") 
 ```
@@ -245,7 +246,11 @@ dados_filtrados %>%
   ggplot(aes(x = income_total/1000, y = month, color = "trt13")) +  
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") +
-  geom_point(shape = 124, size = 6, alpha=0.3) + scale_y_continuous(breaks=seq(1, 12, by = 1)) + scale_x_continuous(labels = scales::comma, trans   = "log", breaks=c(5, 10, 19, 50, 100)) + theme(legend.position = "none") + labs(x = "Valor da remuneração (em milhares R$)", y = "Mês", title = "Distribuição das remuneração em 2020") + 
+  geom_point(shape = 124, size = 6, alpha=0.3) +
+  scale_y_continuous(breaks=seq(1, 12, by = 1)) +
+  scale_x_continuous(labels = scales::comma, trans   = "log", breaks=c(5, 10, 19, 50, 100)) +
+  theme(legend.position = "none") +
+  labs(x = "Valor da remuneração (em milhares R$)", y = "Mês", title = "Distribuição das remuneração em 2020") +
   geom_point(aes(x = 19.458), size = 4, color = "#111111", shape = 124) +
   annotate("text", label = "Remuneração media de 2020", x = 3, y = 13, color = "#111111") 
 ```
@@ -256,7 +261,7 @@ Os Juízes do TRT13 são os que apresentam as maiores remunerações. Logo após
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 library(stringr)
 dados_normalized_role <- dados_filtrados %>% 
-  mutate( normalized_role =
+  mutate(normalized_role =
             case_when(
               str_detect(str_to_lower(role), "analista judiciário") | str_detect(str_to_lower(role), "analista judiciario") | str_detect(str_to_lower(role), "analisa judiciário") ~ "Analista Judiciário",
               str_detect(str_to_lower(role), "inativo") ~ "Inativo",
@@ -274,7 +279,8 @@ dados_normalized_role  %>%
   ggplot(aes(x=normalized_role, y=income_total, color=normalized_role)) +
   theme_minimal() + 
   scale_color_brewer(palette = "Set2") +
-  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.3)) + labs(x="",color= "Tipo  de funcionário", y = "Remuneração",       title = "Remunerações por cargos em out de 2020") + 
+  ggbeeswarm::geom_quasirandom(shape=16, alpha= 0.5,position=position_jitter(0.3)) + 
+  labs(x="",color= "Tipo  de funcionário", y = "Remuneração", title = "Remunerações por cargos em out de 2020") + 
   coord_flip() + 
   scale_y_continuous(breaks= c(0,10000,20000,30000,40000,50000,60000)) +
   stat_summary(fun.y = median, colour = "#F25E4B", geom = "point", size = 1) 
@@ -421,7 +427,7 @@ perks_long %>%
 cargos_trt13 <- dados_filtrados %>% 
   filter(year == 2020 & month == 10) %>% 
   group_by(role) %>% 
-  count() %>% 
+  count() %>%
   rename(Quantidade = n, Cargo = role) %>%
   arrange(desc(Quantidade)) %>%
   knitr::kable()
