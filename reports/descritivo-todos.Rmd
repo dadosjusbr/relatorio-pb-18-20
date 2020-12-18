@@ -48,8 +48,14 @@ incomes = incomes_raw %>%
     perks_total = perks_total + if_else(!is.na(funds_daily) &
                                           (funds_daily > 0), funds_daily, 0),
     funds_total = funds_total - if_else(!is.na(funds_daily) &
-                                          (funds_daily > 0), funds_daily, 0)
+                                          (funds_daily > 0), funds_daily, 0),
+    wage = if_else(wage >= 0, wage, 0),
+    discounts_ceil_retention = if_else(discounts_ceil_retention > 0, discounts_ceil_retention, 0),
+    wage_disc = wage - discounts_ceil_retention, 
+    funds_except_rights = funds_total - if_else(is.na(funds_eventual_benefits), 0, funds_eventual_benefits), 
+    income_total_edr = income_total - replace_na(funds_daily, 0) - funds_eventual_benefits 
   ) %>%
+  mutate(wage_disc = if_else(wage_disc > 0, wage_disc, 0)) %>% 
   rename(perks_daily = funds_daily)
 
 # incomes %>% 
@@ -63,12 +69,14 @@ incomes = incomes_raw %>%
 ```{r}
 incomes %>% 
   count(aid, active, date) %>% 
+  mutate(active = if_else(active, "Ativo", "Inativo")) %>% 
   ggplot(aes(x = date, n, fill = active)) + 
   facet_grid(reorder(aid, -n) ~ .) + 
   geom_col() + 
   labs(title = "Registros por mês", 
        y = "Registros", 
-       x = "")
+       x = "",
+       fill = "Situação")
 ```
 
 O TRE-PB não discrimina os tipos de cargos (membros, servidores...)
@@ -102,6 +110,183 @@ incomes %>%
        y = "Total", 
        x = "")
 ```
+### Montante por tipo de recebimento
+
+```{r}
+income_cats_long = incomes %>%
+  mutate(active = if_else(active, "Ativo", "Inativo")) %>% 
+  select(aid,
+         date,
+         active,
+         wage,
+         perks_except_daily,
+         funds_total) %>%
+  pivot_longer(cols = wage:funds_total) %>%
+  group_by(aid, date, active, name) %>%
+  summarise(value = sum(value, na.rm = T), .groups = "drop")
+```
+
+
+```{r fig.width=12}
+income_cats_long %>% 
+  ggplot(aes(x = date, y = value / 1e6, fill = name)) + 
+  facet_grid(reorder(aid, -value, sum) ~ active) + 
+  geom_col() + 
+  labs(
+    title = "Categorias de recebimento", 
+    x = "Mês",
+    y = "Milhões de reais", 
+    fill = "Categoria"
+       ) + 
+  scale_fill_brewer(palette = "Set2")
+```
+
+```{r}
+income_cats_long %>% 
+  group_by(aid, active, name) %>% 
+  summarise(value = mean(value), .groups = "drop") %>% 
+  ggplot(aes(x = active, y = value / 1e6, fill = name)) + 
+  facet_wrap(~ reorder(aid, -value, sum)) + 
+  geom_col() + 
+  labs(
+    title = "Categorias de recebimento", 
+    x = "Mês",
+    y = "Milhões de reais", 
+    fill = "Categoria"
+       ) + 
+  scale_fill_brewer(palette = "Set2")
+```
+
+```{r}
+income_mem_long = incomes %>%
+  filter(active, type == "membro") %>% 
+  mutate(ceil_discount = !is.na(discounts_ceil_retention) & discounts_ceil_retention > 0) %>% 
+  group_by(aid) %>% 
+  arrange(-income_total_edr) %>% 
+  mutate(rank = 1:n()) %>% 
+  ungroup() %>% 
+  select(`Órgão` = aid,
+         `Salário` = wage,
+         `Indenizações` = perks_except_daily,
+         `Benefícios` = funds_except_rights, 
+         ceil_discount, 
+         income_total_edr, 
+         rank) %>%
+  pivot_longer(cols = 2:4, 
+               names_to = "Categoria", 
+               values_to = "Valor") 
+```
+
+
+```{r}
+income_mem_long %>% 
+  group_by(`Órgão`,
+           Categoria) %>%
+  summarise(Valor = mean(Valor), 
+            .groups = "drop") %>% 
+  ggplot(aes(x = reorder(`Órgão`, -Valor, sum), y = Valor / 1e3, fill = Categoria)) + 
+  geom_col(width = .5) + 
+  scale_fill_manual(values = c("#083D77", "#DA4167","#EBEBD3")) + 
+  labs(
+    title = "Recebimento médio de um membro", 
+    subtitle = "",
+    x = "",
+    y = "Milhares de R$", 
+    fill = "Categoria") 
+```
+
+```{r}
+income_mem_long %>% 
+  filter(ceil_discount) %>% 
+  group_by(`Órgão`,
+           Categoria) %>%
+  summarise(Valor = mean(Valor), 
+            .groups = "drop") %>% 
+  ggplot(aes(x = reorder(`Órgão`, -Valor, sum), y = Valor / 1e3, fill = Categoria)) + 
+  geom_col(width = .5) + 
+  scale_fill_manual(values = c("#083D77", "#DA4167","#EBEBD3")) + 
+  labs(
+    title = "Recebimento médio de membros com desconto", 
+    subtitle = "Apenas membros com desconto devido ao teto",
+    x = "",
+    y = "Milhares de R$", 
+    fill = "Categoria"
+       ) 
+```
+
+```{r}
+income_mem_long %>% 
+  filter(rank <= 40) %>% 
+  ggplot(aes(x = rank, y = Valor / 1e3, fill = Categoria)) + 
+  facet_grid(`Órgão` ~ . ) +
+  geom_col() + 
+  geom_hline(yintercept = 39) + 
+  scale_fill_manual(values = c("#083D77", "#DA4167","#EBEBD3")) + 
+  labs(
+    title = "Maiores recebimentos", 
+    subtitle = "...",
+    x = "",
+    y = "Milhares de R$", 
+    fill = "Categoria"
+       ) 
+```
+
+
+TO DO: Mostrar os órgãos sem dados nos eixos
+
+```{r}
+ceiling_long = incomes %>% 
+  filter(active, type == "membro", discounts_ceil_retention > 0) %>% 
+  group_by(aid) %>% 
+  summarise(`Desconto` = mean(discounts_ceil_retention), 
+            `Recebido` = mean(income_total_edr) - Desconto, 
+            n = n(), 
+            .groups = "drop") %>% 
+  pivot_longer(cols = 2:3)
+
+
+ceiling_long %>% 
+  ggplot(aes(x = reorder(aid, -value), y = value / 1e3, fill = name)) + 
+  geom_col(width = .5) + 
+  scale_fill_manual(values = c("brown", "#dddddd")) + 
+  labs(
+    title = "Recebimento e desconto do teto", 
+    subtitle = "Média dos membros que tiveram desconto devido ao teto constitucional", 
+    x = "", 
+    y = "Milhares de R$", 
+    fill = ""
+  )
+```
+
+```{r}
+cl2 = incomes %>% 
+  filter(active, type == "membro") %>% 
+  group_by(aid) %>% 
+  slice_max(income_total_edr, n = 20, with_ties = FALSE) %>% 
+  arrange(-income_total_edr) %>% 
+  mutate(rank = 1:n()) %>% 
+  ungroup() %>% 
+  mutate(`Desconto` = discounts_ceil_retention, 
+         `Recebido` = income_total_edr - Desconto, 
+         rank) %>% 
+  select(aid, rank, Desconto, Recebido) %>% 
+  pivot_longer(cols = 3:4, names_to = "Categoria") 
+
+cl2 %>% 
+  ggplot(aes(x = rank, y = value / 1e3, fill = Categoria)) + 
+  facet_wrap( ~ aid) + 
+  geom_col() + 
+  scale_fill_manual(values = c("brown", "#dddddd")) + 
+  labs(
+    title = "Recebimento e desconto do teto", 
+    subtitle = "Média dos membros que tiveram desconto devido ao teto constitucional", 
+    x = "", 
+    y = "Milhares de R$", 
+    fill = ""
+  )
+```
+
+
 
 ## Distribuições dos valores
 
