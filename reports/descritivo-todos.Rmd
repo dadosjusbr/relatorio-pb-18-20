@@ -25,12 +25,13 @@ options(digits = 2, scipen = 999)
 
 
 ```{r}
-incomes_raw = read_csv(
+incomes = read_csv(
   here::here("dados/ready/incomes-all.csv"),
   col_types = cols(
     aid = col_character(),
     month = col_integer(),
     year = col_integer(),
+    date = col_date(),
     reg = col_character(),
     name = col_character(),
     role = col_character(),
@@ -40,27 +41,6 @@ incomes_raw = read_csv(
     .default = col_double()
   )
 )
-
-incomes = incomes_raw %>%
-  mutate(
-    date = lubridate::ymd(paste(year, month, "01")),
-    perks_except_daily = perks_total,
-    perks_total = perks_total + if_else(!is.na(funds_daily) &
-                                          (funds_daily > 0), funds_daily, 0),
-    funds_total = funds_total - if_else(!is.na(funds_daily) &
-                                          (funds_daily > 0), funds_daily, 0),
-    wage = if_else(wage >= 0, wage, 0),
-    discounts_ceil_retention = if_else(discounts_ceil_retention > 0, discounts_ceil_retention, 0),
-    wage_disc = wage - discounts_ceil_retention, 
-    funds_except_rights = funds_total - if_else(is.na(funds_eventual_benefits), 0, funds_eventual_benefits), 
-    income_total_edr = income_total - replace_na(funds_daily, 0) - funds_eventual_benefits 
-  ) %>%
-  mutate(wage_disc = if_else(wage_disc > 0, wage_disc, 0)) %>% 
-  rename(perks_daily = funds_daily)
-
-# incomes %>% 
-#   write_csv(here::here("dados/export/incomes-fixed-daily.csv"))
-
 # skimr::skim(incomes)
 ```
 
@@ -79,7 +59,7 @@ incomes %>%
        fill = "Situação")
 ```
 
-O TRE-PB não discrimina os tipos de cargos (membros, servidores...)
+Para o TRE-PB, A discriminação dos tipos de cargos (membros, servidores...) é nossa.
 
 ```{r}
 incomes %>% 
@@ -94,7 +74,7 @@ incomes %>%
   labs(title = "Registros dos ativos por mês", 
        y = "Proporção", 
        x = "") + 
-  scale_fill_brewer(palette = "Set3")
+  scale_fill_brewer(palette = "Set2")
 ```
 
 ## Totais por mês
@@ -106,10 +86,11 @@ incomes %>%
   ggplot(aes(x = date, total/1e6, fill = active)) + 
   facet_grid(reorder(aid, -total) ~ .) + 
   geom_col() + 
-  labs(title = "$ por mês", 
-       y = "Total", 
+  labs(title = "Total por mês", 
+       y = "Total (Milhões de R$)", 
        x = "")
 ```
+
 ### Montante por tipo de recebimento
 
 ```{r}
@@ -127,7 +108,7 @@ income_cats_long = incomes %>%
 ```
 
 
-```{r fig.width=12}
+```{r fig.width=12, fig.height=12}
 income_cats_long %>% 
   ggplot(aes(x = date, y = value / 1e6, fill = name)) + 
   facet_grid(reorder(aid, -value, sum) ~ active) + 
@@ -141,7 +122,7 @@ income_cats_long %>%
   scale_fill_brewer(palette = "Set2")
 ```
 
-```{r}
+```{r fig.height=6}
 income_cats_long %>% 
   group_by(aid, active, name) %>% 
   summarise(value = mean(value), .groups = "drop") %>% 
@@ -178,7 +159,7 @@ income_mem_long = incomes %>%
 ```
 
 
-```{r}
+```{r fig.height=6}
 income_mem_long %>% 
   group_by(`Órgão`,
            Categoria) %>%
@@ -195,7 +176,7 @@ income_mem_long %>%
     fill = "Categoria") 
 ```
 
-```{r}
+```{r fig.height=6}
 income_mem_long %>% 
   filter(ceil_discount) %>% 
   group_by(`Órgão`,
@@ -220,7 +201,7 @@ income_mem_long %>%
   ggplot(aes(x = rank, y = Valor / 1e3, fill = Categoria)) + 
   facet_grid(`Órgão` ~ . ) +
   geom_col() + 
-  geom_hline(yintercept = 39) + 
+  geom_hline(yintercept = 39, color = "black", alpha = .7, size = 1.2) + 
   scale_fill_manual(values = c("#083D77", "#DA4167","#EBEBD3")) + 
   labs(
     title = "Maiores recebimentos", 
@@ -231,10 +212,9 @@ income_mem_long %>%
        ) 
 ```
 
-
 TO DO: Mostrar os órgãos sem dados nos eixos
 
-```{r}
+```{r fig.height=6}
 ceiling_long = incomes %>% 
   filter(active, type == "membro", discounts_ceil_retention > 0) %>% 
   group_by(aid) %>% 
@@ -279,7 +259,7 @@ cl2 %>%
   scale_fill_manual(values = c("brown", "#dddddd")) + 
   labs(
     title = "Recebimento e desconto do teto", 
-    subtitle = "Média dos membros que tiveram desconto devido ao teto constitucional", 
+    subtitle = "Maiores recebimentos em cada órgão, com seus descontos", 
     x = "", 
     y = "Milhares de R$", 
     fill = ""
