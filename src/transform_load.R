@@ -17,9 +17,24 @@ col_types = cols(
   .default = col_double()
 )
 
-read_many_files <- function(files){
-  files %>% 
+read_many_files <- function(files) {
+  files %>%
     map_df(read_csv, col_types = col_types)
+}
+
+correct_complement_trepb = function(d) {
+  roles_tre = read_csv(here::here("dados/input/trepb-roles-types.csv"),
+                       col_types = "cdc") %>%
+    transmute(role = role, tre_type = type)
+  
+  d %>%
+    left_join(roles_tre, by = "role") %>%
+    mutate(
+      type = if_else(aid == "trepb", tre_type, type),
+      active = if_else(aid == "trepb" &
+                         type == "pensionista", FALSE, active)
+    ) %>%
+    select(-tre_type)
 }
 
 transform_incomes = function(incomes_raw) {
@@ -40,40 +55,38 @@ transform_incomes = function(incomes_raw) {
     mutate(wage_disc = if_else(wage_disc > 0, wage_disc, 0)) %>%
     rename(perks_daily = funds_daily)
   
-  roles_tre = read_csv(here::here("dados/input/trepb-roles-types.csv"), 
-                       col_types = "cdc") %>% 
-    transmute(role = role, tre_type = type) 
   
-  incomes = incomes %>% 
-    left_join(roles_tre, by = "role") %>% 
-    mutate(type = if_else(aid == "trepb", tre_type, type)) %>% 
-    select(-tre_type)
+  incomes = incomes %>%
+    correct_complement_trepb()
   
   incomes
 }
 
 
 main <- function(argv = NULL) {
-  input_dir <- ifelse(
-    length(argv) >= 1,
-    argv[1],
-    here::here("dados", "raw")
-  )
+  input_dir <- ifelse(length(argv) >= 1,
+                      argv[1],
+                      here::here("dados", "raw"))
   
   output_file = here::here("dados", "ready", "incomes-all.csv")
   
-  data_raw <- read_many_files(list.files(path = input_dir, pattern = "*.csv", full.names = T))
+  data_raw <-
+    read_many_files(list.files(
+      path = input_dir,
+      pattern = "*.csv",
+      full.names = T
+    ))
   
-  data_ready = data_raw %>% 
-    transform_incomes() 
+  data_ready = data_raw %>%
+    transform_incomes()
   
-  data_ready %>% 
+  data_ready %>%
     write_csv(output_file, na = "")
   
   message("Dados salvos em ", output_file)
 }
 
 if (!interactive()) {
-  argv <- commandArgs(TRUE) 
+  argv <- commandArgs(TRUE)
   main(argv)
 }
