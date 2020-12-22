@@ -17,10 +17,41 @@ col_types = cols(
   .default = col_double()
 )
 
-read_many_file <- function(files){
+read_many_files <- function(files){
   files %>% 
     map_df(read_csv, col_types = col_types)
 }
+
+transform_incomes = function(incomes_raw) {
+  incomes = incomes_raw %>%
+    mutate(
+      date = lubridate::ymd(paste(year, month, "01")),
+      perks_except_daily = perks_total,
+      perks_total = perks_total + if_else(!is.na(funds_daily) &
+                                            (funds_daily > 0), funds_daily, 0),
+      funds_total = funds_total - if_else(!is.na(funds_daily) &
+                                            (funds_daily > 0), funds_daily, 0),
+      wage = if_else(wage >= 0, wage, 0),
+      discounts_ceil_retention = if_else(discounts_ceil_retention > 0, discounts_ceil_retention, 0),
+      wage_disc = wage - discounts_ceil_retention,
+      funds_except_rights = funds_total - if_else(is.na(funds_eventual_benefits), 0, funds_eventual_benefits),
+      income_total_edr = income_total - replace_na(funds_daily, 0) - funds_eventual_benefits
+    ) %>%
+    mutate(wage_disc = if_else(wage_disc > 0, wage_disc, 0)) %>%
+    rename(perks_daily = funds_daily)
+  
+  roles_tre = read_csv(here::here("dados/input/trepb-roles-types.csv"), 
+                       col_types = "cdc") %>% 
+    transmute(role = role, tre_type = type) 
+  
+  incomes = incomes %>% 
+    left_join(roles_tre, by = "role") %>% 
+    mutate(type = if_else(aid == "trepb", tre_type, type)) %>% 
+    select(-tre_type)
+  
+  incomes
+}
+
 
 main <- function(argv = NULL) {
   input_dir <- ifelse(
@@ -31,8 +62,14 @@ main <- function(argv = NULL) {
   
   output_file = here::here("dados", "ready", "incomes-all.csv")
   
-  data_raw <- read_many_file(list.files(path = input_dir, pattern = "*.csv", full.names = T))
-  write_csv(data_raw, output_file, na = "")
+  data_raw <- read_many_files(list.files(path = input_dir, pattern = "*.csv", full.names = T))
+  
+  data_ready = data_raw %>% 
+    transform_incomes() 
+  
+  data_ready %>% 
+    write_csv(output_file, na = "")
+  
   message("Dados salvos em ", output_file)
 }
 
