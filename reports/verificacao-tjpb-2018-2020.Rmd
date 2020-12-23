@@ -18,31 +18,27 @@ options(scipen=999)
 dados <- read_csv(here("dados/ready/incomes-all.csv"))
 
 dados_filtrados <- dados %>%
-  filter(aid != "mppb") %>%
-  filter(aid != "trt13") %>%
-  filter(aid != "trepb")
+  filter(aid == "tjpb")
 ```
 
 # Paraíba
 ## TJPB - 2018 a 2020
 ### Verificando colunas
 #### Agency ID
-Todas as linhas possuem um valor para a coluna **aid**, e ele é sempre igual a "mppb", "tjpb", "trt13" ou "trepb".
+Todas as linhas possuem um valor para a coluna **aid**, e ele é sempre igual a "tjpb".
+```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
+aid <- dados_filtrados %>%
+  summarise(atende = all(aid == "tjpb") & n() > 0)
+
+aid$atende
+```
+#### Month
+O valor de **month** é maior que 0 e menor que 13 em todas as linhas do TJPB (o json diz que o mínimo deve ser 0, e o máximo 12, possível erro)
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 total <- dados_filtrados %>%
   count(aid) %>%
   pull(n)
 
-aid <- dados_filtrados %>%
-  filter(aid == "tjpb") %>%
-  count() %>%
-  pull(n)
-
-assertthat::are_equal(total, aid)
-```
-#### Month
-O valor de **month** é maior que 0 e menor que 13 em todas as linhas do TJPB (o json diz que o mínimo deve ser 0, e o máximo 12, possível erro)
-```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 count_month <- dados_filtrados %>%
   filter(month > 0 && month < 13) %>%
   count() %>%
@@ -54,7 +50,7 @@ assertthat::are_equal(total, count_month)
 O valor de **year** é igual a 2018, 2019 ou 2020 em todas as linhas do TJPB (o json diz que o mínimo deve ser 0, possível erro(?))
 ```{r echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE, paged.print = FALSE}
 count_year <- dados_filtrados %>%
-  filter(year == 2018 || year == 2019 || year == 2020) %>%
+  filter(year %in% 2018:2020) %>%
   count() %>%
   pull(n)
 
