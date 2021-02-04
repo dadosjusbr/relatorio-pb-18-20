@@ -11,7 +11,7 @@ Código e reports de análises com os dados libertados pelo projeto. Os relatór
 
 ## Para desenvolver
 
-Dados brutos vão em `dados/raw`, e prontos em `dados/ready`. 
+Dados brutos vão em `dados/raw`, e prontos em `dados/ready`. Outros dados que nós criamos manualmente e usamos para criar o ready vão em `dados/input`. 
 
 Código para obter dados (e colocá-los em `dados/raw`) e transformar dados (colocando-os e `dados/ready`), assim como funções reusáveis vão em `src/`. 
 
