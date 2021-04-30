@@ -149,6 +149,7 @@ Mas além do salário e dos benefícios, há ainda outra categoria de recebiment
 
 No entanto, o sistema de Justiça resolveu "indenizar" generosamente os seus membros e demais servidores por alguns custos que a maioria das pessoas têm de arcar com seus salários: custos de creches, alimentação, moradia, saúde, mudança, reclusão, funeral, venda de férias não gozadas -- e eles têm dois meses por ano. Sobre esses recebimentos não apenas não incide o teto -- são rendimentos líquidos sobre os quais na maioria dos casos não incide sequer imposto de renda. Como resultado, o desconto do teto é irrisório diante dos onerosos pagamentos da folha de pessoal do sistema de Justiça na Paraíba.
 
+
 ### Pagamentos com pessoal
 
 ```{r}
@@ -340,7 +341,6 @@ get_max_pagto <- function(pagto) {
     sum() %>% 
     round() %>% 
     format(big.mark = ".")
-}
 
 maior_recebimento_slr <- get_max_pagto("Salário")
 maior_recebimento_bnf <- get_max_pagto("Benefícios")
@@ -493,7 +493,6 @@ diarias_fmt <- function(.aid) {
 diarias_tjpb <- diarias_fmt("tjpb")
 diarias_trt13 <- diarias_fmt("trt13")
 ```
-
 Dados do DadosJusBr mostram que, entre 2018 e 2020, na média, o TJ-PB realizou pagamentos a **`r diarias_tjpb$qt_diarias`** pessoas inativas e ativas na folha de pagamento da Corte. Somente **`r diarias_tjpb$qt_diarias_membro`** eram magistrados e apesar de serem somente **`r diarias_tjpb$pc_qt_diarias_membro`**, os magistrados embolsaram em média **`r diarias_tjpb$pc_vl_diarias_membro`** do valor anual das diárias pagas pelo Tribunal a toda sua folha de pagamento. Mais de **R\$ `r diarias_tjpb$vl_diarias_total_membro` mil/ano** foram para os magistrados em rubricas na qual não incidem o teto constitucional.
 
 Além do TJ-PB, somente o TRT-13 possui dados específicos sobre diárias pagas aos seus funcionários. Considerando os anos de 2018 e 2019, o TRT-13 realizou pagamentos a **`r diarias_trt13$qt_diarias`** pessoas inativas e ativas, sendo **`r diarias_trt13$qt_diarias_membro`** (**`r diarias_trt13$pc_qt_diarias_membro`**) magistrados. Neste ano os magistrados da corte trabalhista desembolsaram mais de **R\$ `r diarias_trt13$vl_diarias_total_membro` mil/ano** mil em diárias, **`r diarias_trt13$pc_vl_diarias_membro`** do total pago pelo Tribunal.
