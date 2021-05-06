@@ -341,6 +341,7 @@ get_max_pagto <- function(pagto) {
     sum() %>% 
     round() %>% 
     format(big.mark = ".")
+}
 
 maior_recebimento_slr <- get_max_pagto("Salário")
 maior_recebimento_bnf <- get_max_pagto("Benefícios")
