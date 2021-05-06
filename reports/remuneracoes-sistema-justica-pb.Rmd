@@ -25,9 +25,15 @@ knitr::opts_chunk$set(tidy = FALSE,
                       fig.height = 8,
                       fig.width = 8)
 set.seed(1014)
+
+knitr::knit_hooks$set(inline = function(x) {
+  prettyNum(x, big.mark = ".")
+})
+
 options(digits = 2, scipen = 999, OutDec = ",")
 Sys.setenv(LANGUAGE = "pt-br")
 Sys.setlocale("LC_TIME", "pt_BR")
+
 ```
 
 ```{r}
@@ -46,7 +52,19 @@ incomes = read_csv(
     active = col_logical(),
     .default = col_double()
   )
-)
+) 
+
+incomes <- incomes %>% 
+  mutate(
+    discounts_others_total = if_else(
+      !is.na(discounts_others_total), NA_real_, discounts_others_total
+    ),
+    funds_gratification = if_else(
+     month == 12 | (month == 1 & aid == "trt13"),
+     NA_real_, funds_gratification 
+    )
+  )
+
 # skimr::skim(incomes)
 ```
 
@@ -89,17 +107,17 @@ smry_funcionarios_ativos <- function(df, tp) {
 
 # qtde média de funcionários ativos/ano
 n_servidores_ativos <- smry_funcionarios_ativos(incomes, "servidor") %>% 
-  pull(mean_funcionarios_ano) %>% format(big.mark = ".")
+  pull(mean_funcionarios_ano)
 
 n_membros_ativos <- smry_funcionarios_ativos(incomes, "membro") %>% 
-  pull(mean_funcionarios_ano) %>% format(big.mark = ".")
+  pull(mean_funcionarios_ano)
 
 # valor médio dos pagtos/ano por funcionário ativo
 gasto_medio_servidores_ativos <- smry_funcionarios_ativos(incomes, "servidor") %>% 
-  pull(gasto_medio_por_funcionario) %>% format(big.mark = ".")
+  pull(gasto_medio_por_funcionario)
 
 gasto_medio_membros_ativos <- smry_funcionarios_ativos(incomes, "membro") %>% 
-  pull(gasto_medio_por_funcionario) %>% format(big.mark = ".")
+  pull(gasto_medio_por_funcionario)
 
 # qtde pagtos acima de 100 mil/mês (ativos e inativos)
 pagtos_over_100k <- incomes %>% 
@@ -223,7 +241,7 @@ mean_income_total_type_year <- incomes %>%
 
 mbr <- mean_income_total_type_year %>% filter(type == "Membro") %$% mean(media_pagtos)
 svd <- mean_income_total_type_year %>% filter(type == "Servidor") %$% mean(media_pagtos)
-mbr_svd <- format(round(mbr / svd, 1), decimal.mark = ",", big.mark = ".")
+mbr_svd <- round(mbr / svd, 1)
 ```
 
 ```{r fig.height=4, fig.width=5}
@@ -283,21 +301,15 @@ income_catg <- income_mem_long %>%
 
 mean_wage <- income_catg %>% 
   filter(Categoria == "Salário") %$% 
-  mean(vl) %>% 
-  round(1) %>% 
-  format(big.mark = ".")
+  round(mean(vl), 1)
 
 min_bnfcio <- income_catg %>% 
   filter(Categoria == "Benefícios e indenizações") %$%
-  min(vl) %>% 
-  round(1) %>% 
-  format(big.mark = ".")
+  round(min(vl), 1)
 
 max_bnfcio <- income_catg %>% 
   filter(Categoria == "Benefícios e indenizações") %$%
-  max(vl) %>% 
-  round(1) %>% 
-  format(big.mark = ".")
+  round(max(vl), 1)
 ```
 
 Analisando a média mensal de recebimentos de membros, vê-se que os ganhos que fundamentalmente variam entre órgãos (com exceção do TRE-PB) não são salários (em torno de **R\$`r mean_wage`** mil mensais por membro), mas sim os benefícios e "indenizações" adicionais, que garantem em média entre **R\$`r min_bnfcio` mil** e **R\$`r max_bnfcio` mil** todo mês a depender do órgão.
@@ -339,8 +351,7 @@ get_max_pagto <- function(pagto) {
     filter(Categoria %in% pagto) %>% 
     pull(Valor) %>% 
     sum() %>% 
-    round() %>% 
-    format(big.mark = ".")
+    round()
 }
 
 maior_recebimento_slr <- get_max_pagto("Salário")
@@ -354,8 +365,7 @@ maior_recebimento_bnf_trab <- incomes %>%
       date == unique(income_top1$Data)
   ) %>%
   pull(funds_eventual_benefits) %>% 
-  round() %>% 
-  format(big.mark = ".")
+  round()
 
 acima_do_teto <- income_mem_long %>%
   filter(rank < 41) %>% 
@@ -404,14 +414,14 @@ desconto_max <- cl2 %>%
   filter(Categoria == "Desconto") %>% 
   group_by(aid) %>% 
   summarise(rcb = max(value),  .groups = "drop") %>% 
-  mutate(rcb = format(round(rcb), big.mark = ".", decimal.mark = ",")) %>% 
+  mutate(rcb = round(rcb)) %>% 
   pivot_wider(names_from  = aid, values_from = rcb)
 
 recebidos_mean <- cl2 %>% 
   filter(Categoria == "Recebido") %>% 
   group_by(aid) %>% 
   summarise(rcb = mean(value), .groups = "drop") %>% 
-  mutate(rcb = format(round(rcb), big.mark = ".", decimal.mark = ",")) %>% 
+  mutate(rcb = round(rcb)) %>% 
   pivot_wider(names_from  = aid, values_from = rcb)
 
 ```
@@ -487,8 +497,8 @@ diarias_fmt <- function(.aid) {
          vl_diarias_total = (vl_diarias_total_servidor + vl_diarias_total_membro),
          vl_diarias_mean = vl_diarias_mean_servidor + vl_diarias_mean_membro,
          pc_qt_diarias_membro = scales::percent(qt_diarias_membro / qt_diarias),
-         pc_vl_diarias_membro = scales::percent(vl_diarias_total_membro /  vl_diarias_total),
-         across(where(is.numeric), ~ format(.x, big.mark = ".")))
+         pc_vl_diarias_membro = scales::percent(vl_diarias_total_membro /  vl_diarias_total)
+         )
 }
 
 diarias_tjpb <- diarias_fmt("tjpb")
@@ -506,9 +516,9 @@ maior_diaria_paga <- incomes %>%
   ungroup() %>% 
   slice_max(order_by = perks_daily, n = 2) %>%
   mutate(
-    perks_daily_fmt = format(perks_daily, big.mark = "."),
-    income_total_fmt = format(income_total, big.mark = "."),
-    income_mean_year = format(income_mean_year, big.mark = "."),
+    perks_daily_fmt = perks_daily,
+    income_total_fmt = income_total,
+    income_mean_year = income_mean_year,
     aid = toupper(aid) %>% gsub("^(.+)(.{2}$)", "\\1-\\2", .)
   )
 ```
