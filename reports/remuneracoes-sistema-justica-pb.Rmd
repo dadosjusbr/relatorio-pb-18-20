@@ -15,6 +15,7 @@ library(ggbeeswarm)
 library(glue)
 library(lubridate)
 library(magrittr)
+library(kableExtra)
 theme_set(theme_ipsum_rc())
 ```
 
@@ -33,7 +34,6 @@ knitr::knit_hooks$set(inline = function(x) {
 options(digits = 2, scipen = 999, OutDec = ",")
 Sys.setenv(LANGUAGE = "pt-br")
 Sys.setlocale("LC_TIME", "pt_BR")
-
 ```
 
 ```{r}
@@ -54,14 +54,15 @@ incomes = read_csv(
   )
 ) 
 
-incomes <- incomes %>% 
+# TODO: checar discounts e funds_gratification
+incomes <- incomes %>%
   mutate(
     discounts_others_total = if_else(
-      !is.na(discounts_others_total), NA_real_, discounts_others_total
+      month == 12 & month == 1 & aid == "tjpb", NA_real_, discounts_others_total
     ),
     funds_gratification = if_else(
      month == 12 | (month == 1 & aid == "trt13"),
-     NA_real_, funds_gratification 
+     NA_real_, funds_gratification
     )
   )
 
@@ -69,7 +70,7 @@ incomes <- incomes %>%
 ```
 
 ```{r}
-smry_funcionarios_ativos <- function(df, tp) {
+smry_funcionarios_ativos_ano <- function(df, tp) {
   # recebe incomes e retorna de acordo com type (membro ou servidor):
   # . mean_funcionarios_ano: média de funcionários por ano
   # . mean_income_total_ano: média da somatoria total de pagamentos aos funcionário/ano
@@ -80,13 +81,13 @@ smry_funcionarios_ativos <- function(df, tp) {
       type == tp,
       active
     ) %>% 
-    group_by(date) %>% 
+    group_by(year, month) %>% 
     summarise(
       qt_funcionarios_mes = n(),
       sum_income_total_mes = sum(income_total),
       .groups = "drop"
     ) %>% 
-    group_by(month = month(date)) %>%
+    group_by(month) %>%
     summarise(
       mean_funcionarios_mes = mean(qt_funcionarios_mes),
       mean_income_total_mes = mean(sum_income_total_mes),
@@ -106,17 +107,17 @@ smry_funcionarios_ativos <- function(df, tp) {
 }
 
 # qtde média de funcionários ativos/ano
-n_servidores_ativos <- smry_funcionarios_ativos(incomes, "servidor") %>% 
+n_servidores_ativos <- smry_funcionarios_ativos_ano(incomes, "servidor") %>% 
   pull(mean_funcionarios_ano)
 
-n_membros_ativos <- smry_funcionarios_ativos(incomes, "membro") %>% 
+n_membros_ativos <- smry_funcionarios_ativos_ano(incomes, "membro") %>% 
   pull(mean_funcionarios_ano)
 
 # valor médio dos pagtos/ano por funcionário ativo
-gasto_medio_servidores_ativos <- smry_funcionarios_ativos(incomes, "servidor") %>% 
+gasto_medio_servidores_ativos <- smry_funcionarios_ativos_ano(incomes, "servidor") %>% 
   pull(gasto_medio_por_funcionario)
 
-gasto_medio_membros_ativos <- smry_funcionarios_ativos(incomes, "membro") %>% 
+gasto_medio_membros_ativos <- smry_funcionarios_ativos_ano(incomes, "membro") %>% 
   pull(gasto_medio_por_funcionario)
 
 # qtde pagtos acima de 100 mil/mês (ativos e inativos)
@@ -153,11 +154,50 @@ sidra <- "https://apisidra.ibge.gov.br/values/t/5429/n3/all/v/5931/p/201801,2018
   group_by(year) %>% 
   summarise(salario_medio = mean(valor), .groups = "drop")
 
-n_vezes_salario_medio <- smry_funcionarios_ativos(incomes, "membro") %$% 
+n_vezes_salario_medio <- smry_funcionarios_ativos_ano(incomes, "membro") %$% 
   round(gasto_medio_por_funcionario / sidra$salario_medio)
 ```
 
 Dados coletados e padronizados pelo DadosJusBr -- um projeto em parceria entre Universidade Federal de Campina Grande, o Instituto Federal de Alagoas e a Transparência Brasil -- revelam que de 2018 a 2020 os cofres públicos pagaram uma média de **R\$`r gasto_medio_servidores_ativos`** a **`r n_servidores_ativos`** servidores ativos do Tribunal de Justiça da Paraíba (TJ-PB), Tribunal Regional do Trabalho da 13ª Região (TRT-13) e Ministério Público da Paraíba (MP-PB). Considerando apenas os **`r n_membros_ativos`** membros, isto é, magistrados e procuradores, a média de recebimentos chega a **R\$`r gasto_medio_membros_ativos`**, o que equivale a **`r n_vezes_salario_medio`** vezes o salário médio no estado em 2018^[[IBGE (2018):](https://sidra.ibge.gov.br/tabela/5429#resultado) salário médio mensal R\$ `r format(sidra$salario_medio, big.mark = ".")`. Todos os montantes neste relatórios são em valores correntes]. Neste período foram realizados **`r n_pagtos_over_100k`** pagamentos acima de R\$ 100 mil a servidores e membros ativos (**`r n_pagtos_over_100k_ativos`**) e inativos (**`r n_pagtos_over_100k_inativos`**) do TRT-13. Sete deles ultrapassaram os R\$ 200 mil.
+
+
+```{r}
+smry_funcionarios_ativos_aid <- function(df, tp) {
+  df %>% 
+    filter(active & type == tp) %>% 
+    mutate(aid = toupper(aid) %>% gsub("^(.+)(.{2}$)", "\\1-\\2", .)) %>% 
+    group_by(aid, year, month) %>% 
+    summarise(
+      qt_funcionarios_mes = n(),
+      sum_income_total_mes = sum(income_total),
+      .groups = "drop"
+    ) %>% 
+    group_by(aid) %>% 
+    summarise(
+      mean_funcionarios_orgao = mean(qt_funcionarios_mes),
+      mean_income_total_orgao = mean(sum_income_total_mes),
+      .groups = "drop"
+    ) %>% 
+    mutate(
+      gasto_medio_por_funcionario =
+        mean_income_total_orgao / mean_funcionarios_orgao
+    ) %>% 
+    arrange(desc(gasto_medio_por_funcionario)) %>% 
+    kbl(
+      col.names = c(
+        "Órgão",
+        if_else(tp == "membro", "Quantidade membros", "Quantidade servidores"),
+        "Gasto com pessoal/ano",
+        glue("Gasto por {tp}")
+      ),
+      format.args = list(big.mark = ".", decimal.mark = ",")
+    )
+}
+
+smry_funcionarios_ativos_aid(incomes, "servidor")
+smry_funcionarios_ativos_aid(incomes, "membro")
+```
+
 
 Como forma de tentar evitar abusos nos recebimentos das elites do serviço público, há um teto remuneratório constitucional que deveria impor limites aos recebimentos de servidores públicos, de forma a impedir que os interesses econômicos pessoais conseguissem se sobrepor ao interesse público. A despeito dos princípios de equidade e economicidade, o sistema de Justiça foi capaz de criar mecanismos legais para burlar esse teto abocanhando grandes porções do orçamento público.
 
@@ -200,7 +240,7 @@ n_funcionarios <- incomes %>%
   group_by(aid, year, month) %>% 
   summarise(n_funcionarios_mes = n(), .groups = "drop") %>% 
   group_by(aid) %>% 
-  summarise(n_medio_funcionarios_mes = format(mean(n_funcionarios_mes), big.mark = "."), .groups = "drop") %>% 
+  summarise(n_medio_funcionarios_mes = mean(n_funcionarios_mes), .groups = "drop") %>% 
   pivot_wider(names_from = aid, values_from = n_medio_funcionarios_mes)
 ```
 
