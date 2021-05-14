@@ -18,7 +18,10 @@ set.seed(1014)
 
 knitr::knit_hooks$set(inline = function(x) prettyNum(x, big.mark = "."))
 
-options(digits = 2, scipen = 999, OutDec = ",")
+options(digits = 2,
+        scipen = 999,
+        OutDec = ",",
+        knitr.kable.NA = '')
 Sys.setenv(LANGUAGE = "pt-br")
 Sys.setlocale("LC_TIME", "pt_BR")
 ```
@@ -306,11 +309,12 @@ income_mem_long <- incomes %>%
     `Salário` = wage,
     `Indenizações` = perks_except_daily,
     `Benefícios` = funds_except_rights, 
+    `Desconto - teto de gastos` = discounts_ceil_retention,
     ceil_discount, 
     income_total_edr, 
     rank
   ) %>%
-  pivot_longer(cols = 6:8, 
+  pivot_longer(cols = 6:9, 
                names_to = "Categoria", 
                values_to = "Valor")
 
@@ -344,6 +348,7 @@ Como é possível perceber pelo gráfico a seguir, o MP-PB usa consideravelmente
 
 ```{r  fig.height=4, fig.width=5}
 income_mem_long %>% 
+ filter(Categoria != "Desconto - teto de gastos") %>% 
   group_by(`Órgão`,
            Categoria) %>%
   summarise(Valor = mean(Valor), 
@@ -382,6 +387,11 @@ maior_recebimento_slr <- get_max_pagto("Salário")
 maior_recebimento_bnf <- get_max_pagto("Benefícios")
 maior_recebimento_ind <- get_max_pagto("Indenizações")
 maior_recebimento_tot <- get_max_pagto(c("Salário", "Indenizações", "Benefícios"))
+maior_recebimento_desc <- if_else(
+  unique(income_top1$ceil_discount),
+  glue("houve um desconto de R\\$ {get_max_pagto('Desconto - teto de gastos')}"),
+  "não houve desconto"
+)
 
 maior_recebimento_bnf_trab <- incomes %>% 
   filter(
@@ -411,14 +421,12 @@ acima_do_teto <- income_mem_long %>%
   group_by(`Órgão`) %>% 
   summarise(teto = mean(acima_do_teto), .groups = "drop") %>% 
   pivot_wider(values_from = teto, names_from = `Órgão`)
+
 ```
 
-Se na média as "indenizações" recebidas por membros do MP-PB se destacam, quando separamos os 40 maiores recebimentos mensais individuais dos quatro órgãos, elas ficam ainda mais gritantes: os recebimentos são quase **`r round(acima_do_teto$mppb)`** vezes maiores que o teto constitucional. Nos demais órgãos, os recebimentos ultrapassam em **`r scales::percent(acima_do_teto$trt13-1)`** o valor do teto remuneratório enquanto no TRT-13 a média de valores recebidos é **`r scales::percent(acima_do_teto$tjpb-1)`** maior do que o teto.
+Se na média as "indenizações" recebidas por membros do MP-PB se destacam, quando separamos os 40 maiores recebimentos mensais individuais dos quatro órgãos, elas ficam ainda mais gritantes: os recebimentos são quase **`r round(acima_do_teto$mppb)`** vezes maiores que o teto constitucional. Nos demais órgãos, os recebimentos ultrapassam em **`r scales::percent(acima_do_teto$trt13-1)`** o valor do teto remuneratório enquanto no TRT-13 a média de valores recebidos é **`r scales::percent(acima_do_teto$tjpb-1)`** maior do que o teto. No MP são as indenizações que puxam para cima os rendimentos dos seus membros e no TJ e TRT são os benefícios que ajudam os magistrados a aumentarem seus recebimentos.
 
-O maior recebimento desses órgãos entre 2018 e 2020 foi de mais de **R\$ `r maior_recebimento_tot`** recebidos por uma **`r maior_recebimento_cargo`** do **`r maior_recebimento_orgao`**, **`r maior_recebimento_nome`**, em **`r maior_recebimento_data[1]`** de **`r maior_recebimento_data[2]`**, dos quais **R\$ `r maior_recebimento_slr`** de salário, **R\$ `r maior_recebimento_bnf`** de benefícios e **R\$ `r maior_recebimento_ind`** de indenizações -- isso sem contar benefícios trabalhistas recebidos neste mesmo mês como férias e décimo terceiro que somam **R\$ `r maior_recebimento_bnf_trab`**. Já no TJ e no TRT, são os benefícios que ajudam os magistrados a aumentarem seus recebimentos.
-
-> TIRAR?
-#### Gráfico: 40 maiores recebimentos de cada órgão do sistema de justiça da Paraíba
+O maior recebimento desses órgãos entre 2018 e 2020 foi de mais de **R\$ `r maior_recebimento_tot`** recebidos por uma **`r maior_recebimento_cargo`** do **`r maior_recebimento_orgao`**, **`r maior_recebimento_nome`**, em **`r maior_recebimento_data[1]`** de **`r maior_recebimento_data[2]`**, dos quais **R\$ `r maior_recebimento_slr`** de salário, **R\$ `r maior_recebimento_bnf`** de benefícios e **R\$ `r maior_recebimento_ind`** de indenizações -- isso sem contar benefícios trabalhistas recebidos neste mesmo mês como férias e décimo terceiro que somam **R\$ `r maior_recebimento_bnf_trab`**. Vale ressaltar ainda que sobre o valor recebido pelo membro, **`r maior_recebimento_desc`** referente à ultrapassagem do testo de gastos.
 
 ```{r}
 cl2 <- incomes %>% 
@@ -452,6 +460,7 @@ recebidos_mean <- cl2 %>%
 
 ```{r}
 income_mem_long %>% 
+  filter(Categoria != "Desconto - teto de gastos") %>%
   filter(rank <= 40) %>% 
   ggplot(aes(x = rank, y = Valor / 1e3, fill = Categoria)) + 
   facet_grid(reorder(`Órgão`, -Valor) ~ . ) +
@@ -467,9 +476,7 @@ income_mem_long %>%
        )
 ```
 
-A linha que corta cada um dos quatro gráficos anteriores representa o limite do teto remuneratório. Como é possível observar, em geral os salários não batem o teto, mas é devido aos benefícios e "indenizações" que os servidores conseguem seus altos recebimentos. Fica fácil perceber a insignificância do teto remuneratório para controlar os altos recebimentos com o próximo gráfico, que mostra o quanto é marginal o desconto nos 40 maiores recebimentos dos quatro órgãos em relação ao que recebem. No TJ-PB o teto produziu descontos pequenos de até **R\$ `r desconto_max$tjpb`** diante dos **R\$ `r recebidos_mean$tjpb`** recebidos por seus servidores mais onerosos. No TRT-13 e no MP-PB, a regra não produziu qualquer desconto de teto remuneratório sobre uma média de **`r recebidos_mean$trt13`** e **`r recebidos_mean$mppb`**, respectivamente.
-
-#### Dispersão dos salários
+A linha que corta cada um dos quatro gráficos anteriores representa o limite do teto remuneratório. Como é possível observar, em geral os salários não batem o teto, mas é devido aos benefícios e "indenizações" que os servidores conseguem seus altos recebimentos. Fica fácil perceber a insignificância do teto remuneratório para controlar os altos recebimentos com o próximo gráfico, que mostra o quanto é marginal o desconto nos 40 maiores recebimentos dos quatro órgãos em relação ao que recebem. No TJ-PB o teto produziu descontos pequenos de até **R\$ `r desconto_max$tjpb`** diante dos **R\$ `r recebidos_mean$tjpb`** recebidos por seus servidores mais onerosos. No TRT-13 e no MP-PB, a regra não produziu qualquer desconto de teto remuneratório sobre uma média de R\$ **`r recebidos_mean$trt13`** e R\$ **`r recebidos_mean$mppb`**, respectivamente.
 
 ```{r}
 per_reg <- incomes %>%
@@ -484,15 +491,27 @@ per_reg <- incomes %>%
     total_mean = mean(total),
     perks_max = max(perks_except_daily),
     perks_mean = mean(perks_except_daily),
+    funds_max = max(funds_total),
+    funds_mean = mean(funds_total),
     n = n(),
     .groups = "drop"
   ) %>%
   filter(n >= 6) 
+
+per_reg_100k <- per_reg %>% filter(total_max > 99999.99) %>% 
+  count(aid = toupper(gsub("^(.+)(.{2}$)", "\\1-\\2", aid)))
+
+per_reg_150k <- per_reg %>% filter(total_max > 149999.99) %>% 
+  count(aid = toupper(gsub("^(.+)(.{2}$)", "\\1-\\2", aid)))
 ```
 
-```{r}
-per_reg %>%
-  ggplot(aes(x = reorder(aid,-total_max), y = total_max / 1e3)) +
+No gráfico abaixo analisamos a dispersão dos pagamentos totais (salários, indenizações e benefícios) feitos a todos os membros ativos por mais de 6 meses nos tribunais e no ministério público do estado. Cada ponto no gráfico representa um pagamento feito a algum mebro ativo e os maiores valores pagos estão distribuídos no TRT-13 e no MPPB, onde o piso das remunerações ficam próximos dos R\$ 50 mil. O **`r per_reg_100k$aid`** registrou **`r per_reg_100k$n`** pagamentos acima de R\$ 100 mil com **`r per_reg_150k$n`** superando a marca de R\$ 150 mil. 
+
+#### Gráfico: Maiores quantias recebida em um mês
+
+```{r fig.height=6, fig.width=6}
+per_reg %>% 
+  ggplot(aes(x = reorder(aid, total_max), y = total_max / 1e3)) +
   geom_quasirandom(
     size = .8,
     alpha = .8,
@@ -502,34 +521,37 @@ per_reg %>%
   ylim(0, 180) +
   coord_flip() +
   labs(
-    title = "Maior quantia recebida em um mês",
+    title = NULL,
     subtitle = "Salário, indenização e gratificações exceto diárias. Membros ativos durante 6+ meses.",
     x = "",
     y = "Remuneração total (em milhares de R$)"
   )
 ```
 
-#### Dispersão das indenizações
+Considerando a dispersão dos benefícios pagos aos membros (exceto diárias), conforme já observado anteriormente, no MPPB as indenizações foram a principal forma de aumentar os ganhos dos membros para além do teto constitucional. Quase a todos os membros do MPPB receberam pagamentos de indenizações que superam os R\$ 15 mil.
 
-```{r}
+### Indenizações
+
+#### Gráfico: Maiores indenizações recebida em um mês
+
+```{r fig.height=6, fig.width=6}
 per_reg %>%
-  ggplot(aes(x = reorder(aid,-total_max), y = perks_max / 1e3)) +
+  ggplot(aes(x = reorder(aid, perks_max), y = perks_max / 1e3)) +
   geom_quasirandom(
     size = .8,
     alpha = .8,
     color = "#B361CA",
     width = .3
   ) +
-  # ylim(0, 180) +
+  ylim(0, 60) +
   coord_flip() +
   labs(
-    title = "Maior indenização recebida em um mês",
+    title = NULL,
     subtitle = "Indenizações exceto diárias. Geralmente auxílios.",
     x = "",
     y = "Remuneração total (em milhares de R$)"
   )
 ```
-
 
 ### Diárias
 
@@ -572,6 +594,7 @@ diarias_fmt <- function(.aid) {
 diarias_tjpb <- diarias_fmt("tjpb")
 diarias_trt13 <- diarias_fmt("trt13")
 ```
+
 Dados do DadosJusBr mostram que, entre 2018 e 2020, na média, o TJ-PB realizou pagamentos a **`r diarias_tjpb$qt_diarias`** pessoas inativas e ativas na folha de pagamento da Corte. Somente **`r diarias_tjpb$qt_diarias_membro`** eram magistrados e apesar de serem somente **`r diarias_tjpb$pc_qt_diarias_membro`**, os magistrados embolsaram em média **`r diarias_tjpb$pc_vl_diarias_membro`** do valor anual das diárias pagas pelo Tribunal a toda sua folha de pagamento. Mais de **R\$ `r diarias_tjpb$vl_diarias_total_membro` mil/ano** foram para os magistrados em rubricas na qual não incidem o teto constitucional.
 
 Além do TJ-PB, somente o TRT-13 possui dados específicos sobre diárias pagas aos seus funcionários. Considerando os anos de 2018 e 2019, o TRT-13 realizou pagamentos a **`r diarias_trt13$qt_diarias`** pessoas inativas e ativas, sendo **`r diarias_trt13$qt_diarias_membro`** (**`r diarias_trt13$pc_qt_diarias_membro`**) magistrados. Neste ano os magistrados da corte trabalhista desembolsaram mais de **R\$ `r diarias_trt13$vl_diarias_total_membro` mil/ano** mil em diárias, **`r diarias_trt13$pc_vl_diarias_membro`** do total pago pelo Tribunal.
@@ -592,6 +615,60 @@ maior_diaria_paga <- incomes %>%
 ```
 
 A maior diária paga foi a um servidor do **`r maior_diaria_paga$aid[1]`**. Um **`r maior_diaria_paga$role[1]`** desembolsou R\$ **`r maior_diaria_paga$perks_daily_fmt[1]`** em **`r month.name[maior_diaria_paga$month[1]]`** de **`r maior_diaria_paga$year[1]`**. A segunda maior foi a um **`r maior_diaria_paga$role[2]`** do **`r maior_diaria_paga$aid[2]`**, que em **`r month.name[maior_diaria_paga$month[2]]`** de **`r maior_diaria_paga$year[2]`** recebeu sozinho R\$ **`r maior_diaria_paga$perks_daily_fmt[2]`**. A diária aumentou substantivamente pagamentos tanto do analista como do magistrado. O analista viu seu salário subir da média anual de R\$ **`r maior_diaria_paga$income_mean_year[1]`** para R\$ **`r maior_diaria_paga$income_total_fmt[1]`** e o corregedor de R\$ **`r maior_diaria_paga$income_mean_year[2]`** para R\$ **`r maior_diaria_paga$income_total_fmt[2]`**.
+
+### Benefícios e gratificações
+
+#### Gráfico: Maior benefício recebida em um mês
+
+```{r}
+per_reg %>%
+  ggplot(aes(x = reorder(aid, funds_max), y = funds_max / 1e3)) +
+  geom_quasirandom(
+    size = .8,
+    alpha = .8,
+    color = "#B361CA",
+    width = .3
+  ) +
+  ylim(0, 60) +
+  coord_flip() +
+  labs(
+    title = NULL,
+    subtitle = "Indenizações exceto diárias. Geralmente auxílios.",
+    x = "",
+    y = "Remuneração total (em milhares de R$)"
+  )
+```
+
+#### Tabela: Maiores pagamentos de benefício por tipo e órgão
+
+```{r}
+incomes %>%
+  filter(active, type == "membro" | aid == "trepb") %>%
+  mutate(
+    id = paste(reg, name),
+    total = wage + perks_except_daily + funds_total - discounts_ceil_retention
+  ) %>%
+  group_by(aid) %>%
+  summarise(
+
+    funds_trust_position = max(funds_trust_position),
+    funds_eventual_benefits = max(funds_eventual_benefits),
+    funds_personal_benefits = max(funds_personal_benefits),
+    funds_origin_pos = max(funds_origin_pos),
+    funds_gratification = max(funds_gratification),
+    
+    .groups = "drop"
+  ) %>%
+  mutate(across(where(is.double), ~ replace_na(.x, 0))) %>% 
+  column_to_rownames("aid") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("aid") %>% 
+  kbl(format.args = list(big.mark = ".", decimal.mark = ","),
+      col.names = c("", "MPPB", "TJPB", "TREPB", "TRT13")) %>% 
+      footnote("TODO: traduzir col-names")
+```
+
 
 ### Notas técnicas
 
