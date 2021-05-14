@@ -187,9 +187,10 @@ smry_funcionarios_ativos_aid(incomes, "servidor")
 smry_funcionarios_ativos_aid(incomes, "membro")
 ```
 
-Como forma de tentar evitar abusos nos recebimentos das elites do serviço público, há um teto remuneratório constitucional que deveria impor limites aos recebimentos de servidores públicos, de forma a impedir que os interesses econômicos pessoais conseguissem se sobrepor ao interesse público. A despeito dos princípios de equidade e economicidade, o sistema de Justiça foi capaz de criar mecanismos legais para burlar esse teto abocanhando grandes porções do orçamento público.
+Como forma de tentar evitar abusos nos recebimentos das elites do serviço público, a Constituição impõe um teto remuneratório com a finalidade de impor limites a recebimentos de servidores públicos, impedindo que os interesses econômicos pessoais se sobreponham ao interesse público. A despeito dos princípios de equidade e economicidade, o sistema de Justiça foi capaz de criar mecanismos legais para burlar esse teto oferecendo a magistrados grandes porções do orçamento público.
 
-Além do subsídio mensal, que é uma espécie de salário base, os servidores recebem diversas gratificações, referentes por exemplo a tempo de serviço ou adicionais por exercício de algum cargo especial. A soma do salário base mais esses benefícios não podem ultrapassar o teto de R\$ 39,2 mil, e caso supere, há um abatimento para que o servidor receba dentro do estabelecido constitucionalmente.
+Além do subsídio mensal, que é uma espécie de salário base, os servidores recebem diversas gratificações, referentes por exemplo a tempo de serviço ou adicionais por exercício de algum cargo especial. A soma do salário base mais esses benefícios não podem ultrapassar o teto de R$ 39,2 mil, e caso supere, há um abatimento para que o servidor receba dentro do estabelecido constitucionalmente. Parte desses benefícios são montantes que não são abatidos do teto, como férias, décimo terceiro.
+
 
 Mas além do salário e dos benefícios, há ainda outra categoria de recebimentos que se conveniou chamar de "indenizações"^[Resoluções [13/2006](https://atos.cnj.jus.br/atos/detalhar/177) e [14/2006](https://atos.cnj.jus.br/atos/detalhar/178) do Conselho Nacional de Justiça e [9/2006](https://www.cnmp.mp.br/portal/images/Resolucoes/Resolu%C3%A7%C3%A3o-0091.pdf) e [10/2006](https://www.cnmp.mp.br/portal/images/Resolucoes/Resolu%C3%A7%C3%A3o-0101.pdf) do Conselho Nacional do Ministério Público.]. Pela acepção da palavra, indenizações são ressarcimentos, como diárias, por exemplo, para participar de eventos externos. Sobre esses gastos não incidem o teto e faria sentido, se se tratasse apenas de reembolso por gastos com exercício da função -- ainda que possam ser questionáveis os montantes reservados para isso.
 
@@ -255,7 +256,7 @@ incomes %>%
 
 ### Membros e demais servidores
 
-Os órgãos do sistema de Justiça costumam distinguir a elite dos seus servidores públicos chamando-os de "membros", que são basicamente magistrados, procuradores e promotores. As diferenças dos recebimentos entre membros e o restante dos servidores públicos é substancial. Como os dados do TRE separando membros são inconsistentes, classificamos a partir do cargo os que são ou não membros.
+Os órgãos do sistema de Justiça costumam distinguir a elite dos seus servidores públicos chamando-os de "membros", que são basicamente magistrados, procuradores e promotores. As diferenças dos recebimentos entre membros e o restante dos servidores públicos é substantiva. Como os dados do TRE separando membros são inconsistentes, classificamos a partir do cargo os que são ou não membros.
 
 #### Gráfico: Pagamentos médios do sistema de justiça da Paraíba para membros, servidores e pensionistas (2018-2020)
 
@@ -279,7 +280,7 @@ mean_income_total_type_year %>%
   geom_col(position = "dodge") +
   scale_fill_brewer() + 
   labs(
-    title = "Pagamentos médios do sistema de justiça da Paraíba",
+    title = NULL,
     subtitle = "TJ-PB, TRT 13 e MPPB (2018-2020)",
     x = NULL,
     y = "Total (Milhares de R$)",
@@ -424,7 +425,7 @@ acima_do_teto <- income_mem_long %>%
 
 ```
 
-Se na média as "indenizações" recebidas por membros do MP-PB se destacam, quando separamos os 40 maiores recebimentos mensais individuais dos quatro órgãos, elas ficam ainda mais gritantes: os recebimentos são quase **`r round(acima_do_teto$mppb)`** vezes maiores que o teto constitucional. Nos demais órgãos, os recebimentos ultrapassam em **`r scales::percent(acima_do_teto$trt13-1)`** o valor do teto remuneratório enquanto no TRT-13 a média de valores recebidos é **`r scales::percent(acima_do_teto$tjpb-1)`** maior do que o teto. No MP são as indenizações que puxam para cima os rendimentos dos seus membros e no TJ e TRT são os benefícios que ajudam os magistrados a aumentarem seus recebimentos.
+Se na média as "indenizações" recebidas por membros do MP-PB se destacam, quando separamos os 40 maiores recebimentos mensais individuais dos quatro órgãos, elas ficam ainda mais gritantes: os recebimentos são quase **`r round(acima_do_teto$mppb)`** vezes maiores que o teto constitucional. No TRT-12 a os recebimentos ultrapassam em **`r scales::percent(acima_do_teto$trt13-1)`** o valor do teto remuneratório enquanto no TJPB a média de valores recebidos é **`r scales::percent(acima_do_teto$tjpb-1)`** maior do que o teto.
 
 O maior recebimento desses órgãos entre 2018 e 2020 foi de mais de **R\$ `r maior_recebimento_tot`** recebidos por uma **`r maior_recebimento_cargo`** do **`r maior_recebimento_orgao`**, **`r maior_recebimento_nome`**, em **`r maior_recebimento_data[1]`** de **`r maior_recebimento_data[2]`**, dos quais **R\$ `r maior_recebimento_slr`** de salário, **R\$ `r maior_recebimento_bnf`** de benefícios e **R\$ `r maior_recebimento_ind`** de indenizações -- isso sem contar benefícios trabalhistas recebidos neste mesmo mês como férias e décimo terceiro que somam **R\$ `r maior_recebimento_bnf_trab`**. Vale ressaltar ainda que sobre o valor recebido pelo membro, **`r maior_recebimento_desc`** referente à ultrapassagem do testo de gastos.
 
@@ -509,7 +510,7 @@ No gráfico abaixo analisamos a dispersão dos pagamentos totais (salários, ind
 
 #### Gráfico: Maiores quantias recebida em um mês
 
-```{r fig.height=6, fig.width=6}
+```{r fig.height=6.5, fig.width=6.5}
 per_reg %>% 
   ggplot(aes(x = reorder(aid, total_max), y = total_max / 1e3)) +
   geom_quasirandom(
@@ -522,19 +523,19 @@ per_reg %>%
   coord_flip() +
   labs(
     title = NULL,
-    subtitle = "Salário, indenização e gratificações exceto diárias. Membros ativos durante 6+ meses.",
+    subtitle = "Salário, indenização e gratificações exceto diárias.\nMembros ativos durante 6+ meses.",
     x = "",
     y = "Remuneração total (em milhares de R$)"
   )
 ```
 
-Considerando a dispersão dos benefícios pagos aos membros (exceto diárias), conforme já observado anteriormente, no MPPB as indenizações foram a principal forma de aumentar os ganhos dos membros para além do teto constitucional. Quase a todos os membros do MPPB receberam pagamentos de indenizações que superam os R\$ 15 mil.
-
 ### Indenizações
+
+Considerando a dispersão dos benefícios pagos aos membros (exceto diárias), conforme já observado anteriormente, no MPPB as indenizações foram a principal forma de aumentar os ganhos dos membros para além do teto constitucional. Quase a todos os membros do MPPB receberam pagamentos de indenizações que superam os R\$ 15 mil.
 
 #### Gráfico: Maiores indenizações recebida em um mês
 
-```{r fig.height=6, fig.width=6}
+```{r fig.height=6.5, fig.width=6.5}
 per_reg %>%
   ggplot(aes(x = reorder(aid, perks_max), y = perks_max / 1e3)) +
   geom_quasirandom(
@@ -620,7 +621,7 @@ A maior diária paga foi a um servidor do **`r maior_diaria_paga$aid[1]`**. Um *
 
 #### Gráfico: Maior benefício recebida em um mês
 
-```{r}
+```{r fig.height=6.5, fig.width=6.5}
 per_reg %>%
   ggplot(aes(x = reorder(aid, funds_max), y = funds_max / 1e3)) +
   geom_quasirandom(
