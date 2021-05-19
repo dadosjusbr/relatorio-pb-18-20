@@ -9,25 +9,32 @@ editor_options:
 ---
 
 ```{r echo=FALSE,message=FALSE,warning=FALSE}
-library(tidyverse)
-library(hrbrthemes)
-library(ggbeeswarm)
-library(glue)
-library(lubridate)
-library(magrittr)
-theme_set(theme_ipsum_rc())
-```
-
-```{r echo=FALSE,message=FALSE,warning=FALSE}
 knitr::opts_chunk$set(tidy = FALSE, 
                       echo = FALSE,
                       warning = FALSE, 
                       fig.height = 8,
                       fig.width = 8)
 set.seed(1014)
-options(digits = 2, scipen = 999, OutDec = ",")
+
+knitr::knit_hooks$set(inline = function(x) prettyNum(x, big.mark = "."))
+
+options(digits = 2,
+        scipen = 999,
+        OutDec = ",",
+        knitr.kable.NA = '')
 Sys.setenv(LANGUAGE = "pt-br")
 Sys.setlocale("LC_TIME", "pt_BR")
+```
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(hrbrthemes)
+library(ggbeeswarm)
+library(glue)
+library(lubridate)
+library(magrittr)
+library(kableExtra)
+theme_set(theme_ipsum_rc())
 ```
 
 ```{r}
@@ -47,11 +54,12 @@ incomes = read_csv(
     .default = col_double()
   )
 )
+
 # skimr::skim(incomes)
 ```
 
 ```{r}
-smry_funcionarios_ativos <- function(df, tp) {
+smry_funcionarios_ativos_ano <- function(df, tp) {
   # recebe incomes e retorna de acordo com type (membro ou servidor):
   # . mean_funcionarios_ano: média de funcionários por ano
   # . mean_income_total_ano: média da somatoria total de pagamentos aos funcionário/ano
@@ -62,13 +70,13 @@ smry_funcionarios_ativos <- function(df, tp) {
       type == tp,
       active
     ) %>% 
-    group_by(date) %>% 
+    group_by(year, month) %>% 
     summarise(
       qt_funcionarios_mes = n(),
       sum_income_total_mes = sum(income_total),
       .groups = "drop"
     ) %>% 
-    group_by(month = month(date)) %>%
+    group_by(month) %>%
     summarise(
       mean_funcionarios_mes = mean(qt_funcionarios_mes),
       mean_income_total_mes = mean(sum_income_total_mes),
@@ -88,18 +96,18 @@ smry_funcionarios_ativos <- function(df, tp) {
 }
 
 # qtde média de funcionários ativos/ano
-n_servidores_ativos <- smry_funcionarios_ativos(incomes, "servidor") %>% 
-  pull(mean_funcionarios_ano) %>% format(big.mark = ".")
+n_servidores_ativos <- smry_funcionarios_ativos_ano(incomes, "servidor") %>% 
+  pull(mean_funcionarios_ano)
 
-n_membros_ativos <- smry_funcionarios_ativos(incomes, "membro") %>% 
-  pull(mean_funcionarios_ano) %>% format(big.mark = ".")
+n_membros_ativos <- smry_funcionarios_ativos_ano(incomes, "membro") %>% 
+  pull(mean_funcionarios_ano)
 
 # valor médio dos pagtos/ano por funcionário ativo
-gasto_medio_servidores_ativos <- smry_funcionarios_ativos(incomes, "servidor") %>% 
-  pull(gasto_medio_por_funcionario) %>% format(big.mark = ".")
+gasto_medio_servidores_ativos <- smry_funcionarios_ativos_ano(incomes, "servidor") %>% 
+  pull(gasto_medio_por_funcionario)
 
-gasto_medio_membros_ativos <- smry_funcionarios_ativos(incomes, "membro") %>% 
-  pull(gasto_medio_por_funcionario) %>% format(big.mark = ".")
+gasto_medio_membros_ativos <- smry_funcionarios_ativos_ano(incomes, "membro") %>% 
+  pull(gasto_medio_por_funcionario)
 
 # qtde pagtos acima de 100 mil/mês (ativos e inativos)
 pagtos_over_100k <- incomes %>% 
@@ -135,20 +143,58 @@ sidra <- "https://apisidra.ibge.gov.br/values/t/5429/n3/all/v/5931/p/201801,2018
   group_by(year) %>% 
   summarise(salario_medio = mean(valor), .groups = "drop")
 
-n_vezes_salario_medio <- smry_funcionarios_ativos(incomes, "membro") %$% 
+n_vezes_salario_medio <- smry_funcionarios_ativos_ano(incomes, "membro") %$% 
   round(gasto_medio_por_funcionario / sidra$salario_medio)
 ```
 
 Dados coletados e padronizados pelo DadosJusBr -- um projeto em parceria entre Universidade Federal de Campina Grande, o Instituto Federal de Alagoas e a Transparência Brasil -- revelam que de 2018 a 2020 os cofres públicos pagaram uma média de **R\$`r gasto_medio_servidores_ativos`** a **`r n_servidores_ativos`** servidores ativos do Tribunal de Justiça da Paraíba (TJ-PB), Tribunal Regional do Trabalho da 13ª Região (TRT-13) e Ministério Público da Paraíba (MP-PB). Considerando apenas os **`r n_membros_ativos`** membros, isto é, magistrados e procuradores, a média de recebimentos chega a **R\$`r gasto_medio_membros_ativos`**, o que equivale a **`r n_vezes_salario_medio`** vezes o salário médio no estado em 2018^[[IBGE (2018):](https://sidra.ibge.gov.br/tabela/5429#resultado) salário médio mensal R\$ `r format(sidra$salario_medio, big.mark = ".")`. Todos os montantes neste relatórios são em valores correntes]. Neste período foram realizados **`r n_pagtos_over_100k`** pagamentos acima de R\$ 100 mil a servidores e membros ativos (**`r n_pagtos_over_100k_ativos`**) e inativos (**`r n_pagtos_over_100k_inativos`**) do TRT-13. Sete deles ultrapassaram os R\$ 200 mil.
 
-Como forma de tentar evitar abusos nos recebimentos das elites do serviço público, há um teto remuneratório constitucional que deveria impor limites aos recebimentos de servidores públicos, de forma a impedir que os interesses econômicos pessoais conseguissem se sobrepor ao interesse público. A despeito dos princípios de equidade e economicidade, o sistema de Justiça foi capaz de criar mecanismos legais para burlar esse teto abocanhando grandes porções do orçamento público.
 
-Além do subsídio mensal, que é uma espécie de salário base, os servidores recebem diversas gratificações, referentes por exemplo a tempo de serviço ou adicionais por exercício de algum cargo especial. A soma do salário base mais esses benefícios não podem ultrapassar o teto de R\$ 39,2 mil, e caso supere, há um abatimento para que o servidor receba dentro do estabelecido constitucionalmente.
+```{r}
+smry_funcionarios_ativos_aid <- function(df, tp) {
+  df %>% 
+    filter(active & type == tp) %>% 
+    mutate(aid = toupper(aid) %>% gsub("^(.+)(.{2}$)", "\\1-\\2", .)) %>% 
+    group_by(aid, year, month) %>% 
+    summarise(
+      qt_funcionarios_mes = n(),
+      sum_income_total_mes = sum(income_total),
+      .groups = "drop"
+    ) %>% 
+    group_by(aid) %>% 
+    summarise(
+      mean_funcionarios_orgao = mean(qt_funcionarios_mes),
+      mean_income_total_orgao = mean(sum_income_total_mes),
+      .groups = "drop"
+    ) %>% 
+    mutate(
+      gasto_medio_por_funcionario =
+        mean_income_total_orgao / mean_funcionarios_orgao
+    ) %>% 
+    arrange(desc(gasto_medio_por_funcionario)) %>% 
+    kbl(
+      col.names = c(
+        "Órgão",
+        if_else(tp == "membro", "Quantidade membros", "Quantidade servidores"),
+        "Gasto com pessoal/ano",
+        glue("Gasto por {tp}")
+      ),
+      format.args = list(big.mark = ".", decimal.mark = ",")
+    )
+}
+
+smry_funcionarios_ativos_aid(incomes, "servidor")
+smry_funcionarios_ativos_aid(incomes, "membro")
+```
+
+Como forma de tentar evitar abusos nos recebimentos das elites do serviço público, a Constituição impõe um teto remuneratório com a finalidade de impor limites a recebimentos de servidores públicos, impedindo que os interesses econômicos pessoais se sobreponham ao interesse público. A despeito dos princípios de equidade e economicidade, o sistema de Justiça foi capaz de criar mecanismos legais para burlar esse teto oferecendo a magistrados grandes porções do orçamento público.
+
+Além do subsídio mensal, que é uma espécie de salário base, os servidores recebem diversas gratificações, referentes por exemplo a tempo de serviço ou adicionais por exercício de algum cargo especial. A soma do salário base mais esses benefícios não podem ultrapassar o teto de R$ 39,2 mil, e caso supere, há um abatimento para que o servidor receba dentro do estabelecido constitucionalmente. Parte desses benefícios são montantes que não são abatidos do teto, como férias, décimo terceiro.
+
 
 Mas além do salário e dos benefícios, há ainda outra categoria de recebimentos que se conveniou chamar de "indenizações"^[Resoluções [13/2006](https://atos.cnj.jus.br/atos/detalhar/177) e [14/2006](https://atos.cnj.jus.br/atos/detalhar/178) do Conselho Nacional de Justiça e [9/2006](https://www.cnmp.mp.br/portal/images/Resolucoes/Resolu%C3%A7%C3%A3o-0091.pdf) e [10/2006](https://www.cnmp.mp.br/portal/images/Resolucoes/Resolu%C3%A7%C3%A3o-0101.pdf) do Conselho Nacional do Ministério Público.]. Pela acepção da palavra, indenizações são ressarcimentos, como diárias, por exemplo, para participar de eventos externos. Sobre esses gastos não incidem o teto e faria sentido, se se tratasse apenas de reembolso por gastos com exercício da função -- ainda que possam ser questionáveis os montantes reservados para isso.
 
 No entanto, o sistema de Justiça resolveu "indenizar" generosamente os seus membros e demais servidores por alguns custos que a maioria das pessoas têm de arcar com seus salários: custos de creches, alimentação, moradia, saúde, mudança, reclusão, funeral, venda de férias não gozadas -- e eles têm dois meses por ano. Sobre esses recebimentos não apenas não incide o teto -- são rendimentos líquidos sobre os quais na maioria dos casos não incide sequer imposto de renda. Como resultado, o desconto do teto é irrisório diante dos onerosos pagamentos da folha de pessoal do sistema de Justiça na Paraíba.
-
 
 ### Pagamentos com pessoal
 
@@ -182,7 +228,7 @@ n_funcionarios <- incomes %>%
   group_by(aid, year, month) %>% 
   summarise(n_funcionarios_mes = n(), .groups = "drop") %>% 
   group_by(aid) %>% 
-  summarise(n_medio_funcionarios_mes = format(mean(n_funcionarios_mes), big.mark = "."), .groups = "drop") %>% 
+  summarise(n_medio_funcionarios_mes = mean(n_funcionarios_mes), .groups = "drop") %>% 
   pivot_wider(names_from = aid, values_from = n_medio_funcionarios_mes)
 ```
 
@@ -210,7 +256,7 @@ incomes %>%
 
 ### Membros e demais servidores
 
-Os órgãos do sistema de Justiça costumam distinguir a elite dos seus servidores públicos chamando-os de "membros", que são basicamente magistrados, procuradores e promotores. As diferenças dos recebimentos entre membros e o restante dos servidores públicos é substancial. Como os dados do TRE separando membros são inconsistentes, classificamos a partir do cargo os que são ou não membros.
+Os órgãos do sistema de Justiça costumam distinguir a elite dos seus servidores públicos chamando-os de "membros", que são basicamente magistrados, procuradores e promotores. As diferenças dos recebimentos entre membros e o restante dos servidores públicos é substantiva. Como os dados do TRE separando membros são inconsistentes, classificamos a partir do cargo os que são ou não membros.
 
 #### Gráfico: Pagamentos médios do sistema de justiça da Paraíba para membros, servidores e pensionistas (2018-2020)
 
@@ -223,7 +269,7 @@ mean_income_total_type_year <- incomes %>%
 
 mbr <- mean_income_total_type_year %>% filter(type == "Membro") %$% mean(media_pagtos)
 svd <- mean_income_total_type_year %>% filter(type == "Servidor") %$% mean(media_pagtos)
-mbr_svd <- format(round(mbr / svd, 1), decimal.mark = ",", big.mark = ".")
+mbr_svd <- round(mbr / svd, 1)
 ```
 
 ```{r fig.height=4, fig.width=5}
@@ -234,7 +280,7 @@ mean_income_total_type_year %>%
   geom_col(position = "dodge") +
   scale_fill_brewer() + 
   labs(
-    title = "Pagamentos médios do sistema de justiça da Paraíba",
+    title = NULL,
     subtitle = "TJ-PB, TRT 13 e MPPB (2018-2020)",
     x = NULL,
     y = "Total (Milhares de R$)",
@@ -264,11 +310,12 @@ income_mem_long <- incomes %>%
     `Salário` = wage,
     `Indenizações` = perks_except_daily,
     `Benefícios` = funds_except_rights, 
+    `Desconto - teto de gastos` = discounts_ceil_retention,
     ceil_discount, 
     income_total_edr, 
     rank
   ) %>%
-  pivot_longer(cols = 6:8, 
+  pivot_longer(cols = 6:9, 
                names_to = "Categoria", 
                values_to = "Valor")
 
@@ -283,21 +330,15 @@ income_catg <- income_mem_long %>%
 
 mean_wage <- income_catg %>% 
   filter(Categoria == "Salário") %$% 
-  mean(vl) %>% 
-  round(1) %>% 
-  format(big.mark = ".")
+  round(mean(vl), 1)
 
 min_bnfcio <- income_catg %>% 
   filter(Categoria == "Benefícios e indenizações") %$%
-  min(vl) %>% 
-  round(1) %>% 
-  format(big.mark = ".")
+  round(min(vl), 1)
 
 max_bnfcio <- income_catg %>% 
   filter(Categoria == "Benefícios e indenizações") %$%
-  max(vl) %>% 
-  round(1) %>% 
-  format(big.mark = ".")
+  round(max(vl), 1)
 ```
 
 Analisando a média mensal de recebimentos de membros, vê-se que os ganhos que fundamentalmente variam entre órgãos (com exceção do TRE-PB) não são salários (em torno de **R\$`r mean_wage`** mil mensais por membro), mas sim os benefícios e "indenizações" adicionais, que garantem em média entre **R\$`r min_bnfcio` mil** e **R\$`r max_bnfcio` mil** todo mês a depender do órgão.
@@ -308,6 +349,7 @@ Como é possível perceber pelo gráfico a seguir, o MP-PB usa consideravelmente
 
 ```{r  fig.height=4, fig.width=5}
 income_mem_long %>% 
+ filter(Categoria != "Desconto - teto de gastos") %>% 
   group_by(`Órgão`,
            Categoria) %>%
   summarise(Valor = mean(Valor), 
@@ -339,14 +381,18 @@ get_max_pagto <- function(pagto) {
     filter(Categoria %in% pagto) %>% 
     pull(Valor) %>% 
     sum() %>% 
-    round() %>% 
-    format(big.mark = ".")
+    round()
 }
 
 maior_recebimento_slr <- get_max_pagto("Salário")
 maior_recebimento_bnf <- get_max_pagto("Benefícios")
 maior_recebimento_ind <- get_max_pagto("Indenizações")
 maior_recebimento_tot <- get_max_pagto(c("Salário", "Indenizações", "Benefícios"))
+maior_recebimento_desc <- if_else(
+  unique(income_top1$ceil_discount),
+  glue("houve um desconto de R\\$ {get_max_pagto('Desconto - teto de gastos')}"),
+  "não houve desconto"
+)
 
 maior_recebimento_bnf_trab <- incomes %>% 
   filter(
@@ -354,8 +400,7 @@ maior_recebimento_bnf_trab <- incomes %>%
       date == unique(income_top1$Data)
   ) %>%
   pull(funds_eventual_benefits) %>% 
-  round() %>% 
-  format(big.mark = ".")
+  round()
 
 acima_do_teto <- income_mem_long %>%
   filter(rank < 41) %>% 
@@ -377,14 +422,12 @@ acima_do_teto <- income_mem_long %>%
   group_by(`Órgão`) %>% 
   summarise(teto = mean(acima_do_teto), .groups = "drop") %>% 
   pivot_wider(values_from = teto, names_from = `Órgão`)
+
 ```
 
-Se na média as "indenizações" recebidas por membros do MP-PB se destacam, quando separamos os 40 maiores recebimentos mensais individuais dos quatro órgãos, elas ficam ainda mais gritantes: os recebimentos são quase **`r round(acima_do_teto$mppb)`** vezes maiores que o teto constitucional. Nos demais órgãos, os recebimentos ultrapassam em **`r scales::percent(acima_do_teto$trt13-1)`** o valor do teto remuneratório enquanto no TRT-13 a média de valores recebidos é **`r scales::percent(acima_do_teto$tjpb-1)`** maior do que o teto.
+Se na média as "indenizações" recebidas por membros do MP-PB se destacam, quando separamos os 40 maiores recebimentos mensais individuais dos quatro órgãos, elas ficam ainda mais gritantes: os recebimentos são quase **`r round(acima_do_teto$mppb)`** vezes maiores que o teto constitucional. No TRT-12 a os recebimentos ultrapassam em **`r scales::percent(acima_do_teto$trt13-1)`** o valor do teto remuneratório enquanto no TJPB a média de valores recebidos é **`r scales::percent(acima_do_teto$tjpb-1)`** maior do que o teto.
 
-O maior recebimento desses órgãos entre 2018 e 2020 foi de mais de **R\$ `r maior_recebimento_tot`** recebidos por uma **`r maior_recebimento_cargo`** do **`r maior_recebimento_orgao`**, **`r maior_recebimento_nome`**, em **`r maior_recebimento_data[1]`** de **`r maior_recebimento_data[2]`**, dos quais **R\$ `r maior_recebimento_slr`** de salário, **R\$ `r maior_recebimento_bnf`** de benefícios e **R\$ `r maior_recebimento_ind`** de indenizações -- isso sem contar benefícios trabalhistas recebidos neste mesmo mês como férias e décimo terceiro que somam **R\$ `r maior_recebimento_bnf_trab`**. Já no TJ e no TRT, são os benefícios que ajudam os magistrados a aumentarem seus recebimentos.
-
-> TIRAR?
-#### Gráfico: 40 maiores recebimentos de cada órgão do sistema de justiça da Paraíba
+O maior recebimento desses órgãos entre 2018 e 2020 foi de mais de **R\$ `r maior_recebimento_tot`** recebidos por uma **`r maior_recebimento_cargo`** do **`r maior_recebimento_orgao`**, **`r maior_recebimento_nome`**, em **`r maior_recebimento_data[1]`** de **`r maior_recebimento_data[2]`**, dos quais **R\$ `r maior_recebimento_slr`** de salário, **R\$ `r maior_recebimento_bnf`** de benefícios e **R\$ `r maior_recebimento_ind`** de indenizações -- isso sem contar benefícios trabalhistas recebidos neste mesmo mês como férias e décimo terceiro que somam **R\$ `r maior_recebimento_bnf_trab`**. Vale ressaltar ainda que sobre o valor recebido pelo membro, **`r maior_recebimento_desc`** referente à ultrapassagem do testo de gastos.
 
 ```{r}
 cl2 <- incomes %>% 
@@ -404,20 +447,21 @@ desconto_max <- cl2 %>%
   filter(Categoria == "Desconto") %>% 
   group_by(aid) %>% 
   summarise(rcb = max(value),  .groups = "drop") %>% 
-  mutate(rcb = format(round(rcb), big.mark = ".", decimal.mark = ",")) %>% 
+  mutate(rcb = round(rcb)) %>% 
   pivot_wider(names_from  = aid, values_from = rcb)
 
 recebidos_mean <- cl2 %>% 
   filter(Categoria == "Recebido") %>% 
   group_by(aid) %>% 
   summarise(rcb = mean(value), .groups = "drop") %>% 
-  mutate(rcb = format(round(rcb), big.mark = ".", decimal.mark = ",")) %>% 
+  mutate(rcb = round(rcb)) %>% 
   pivot_wider(names_from  = aid, values_from = rcb)
 
 ```
 
 ```{r}
 income_mem_long %>% 
+  filter(Categoria != "Desconto - teto de gastos") %>%
   filter(rank <= 40) %>% 
   ggplot(aes(x = rank, y = Valor / 1e3, fill = Categoria)) + 
   facet_grid(reorder(`Órgão`, -Valor) ~ . ) +
@@ -433,23 +477,80 @@ income_mem_long %>%
        )
 ```
 
-A linha que corta cada um dos quatro gráficos anteriores representa o limite do teto remuneratório. Como é possível observar, em geral os salários não batem o teto, mas é devido aos benefícios e "indenizações" que os servidores conseguem seus altos recebimentos. Fica fácil perceber a insignificância do teto remuneratório para controlar os altos recebimentos com o próximo gráfico, que mostra o quanto é marginal o desconto nos 40 maiores recebimentos dos quatro órgãos em relação ao que recebem. No TJ-PB o teto produziu descontos pequenos de até **R\$ `r desconto_max$tjpb`** diante dos **R\$ `r recebidos_mean$tjpb`** recebidos por seus servidores mais onerosos. No TRT-13 e no MP-PB, a regra não produziu qualquer desconto de teto remuneratório sobre uma média de **`r recebidos_mean$trt13`** e **`r recebidos_mean$mppb`**, respectivamente.
-
-#### Gráfico: Maiores recebimentos e desconto do teto remuneratório por órgão (2018-2020)
+A linha que corta cada um dos quatro gráficos anteriores representa o limite do teto remuneratório. Como é possível observar, em geral os salários não batem o teto, mas é devido aos benefícios e "indenizações" que os servidores conseguem seus altos recebimentos. Fica fácil perceber a insignificância do teto remuneratório para controlar os altos recebimentos com o próximo gráfico, que mostra o quanto é marginal o desconto nos 40 maiores recebimentos dos quatro órgãos em relação ao que recebem. No TJ-PB o teto produziu descontos pequenos de até **R\$ `r desconto_max$tjpb`** diante dos **R\$ `r recebidos_mean$tjpb`** recebidos por seus servidores mais onerosos. No TRT-13 e no MP-PB, a regra não produziu qualquer desconto de teto remuneratório sobre uma média de R\$ **`r recebidos_mean$trt13`** e R\$ **`r recebidos_mean$mppb`**, respectivamente.
 
 ```{r}
-cl2 %>% 
-  filter(rank < 21) %>% 
-  ggplot(aes(x = rank, y = value / 1e3, fill = Categoria)) + 
-  facet_wrap(aid ~ .) + 
-  geom_col() + 
-  scale_fill_manual(values = c("brown", "#dddddd")) + 
+per_reg <- incomes %>%
+  filter(active, type == "membro" | aid == "trepb") %>%
+  mutate(
+    id = paste(reg, name),
+    total = wage + perks_except_daily + funds_total - discounts_ceil_retention
+  ) %>%
+  group_by(aid, id) %>%
+  summarise(
+    total_max = max(total),
+    total_mean = mean(total),
+    perks_max = max(perks_except_daily),
+    perks_mean = mean(perks_except_daily),
+    funds_max = max(funds_total),
+    funds_mean = mean(funds_total),
+    n = n(),
+    .groups = "drop"
+  ) %>%
+  filter(n >= 6) 
+
+per_reg_100k <- per_reg %>% filter(total_max > 99999.99) %>% 
+  count(aid = toupper(gsub("^(.+)(.{2}$)", "\\1-\\2", aid)))
+
+per_reg_150k <- per_reg %>% filter(total_max > 149999.99) %>% 
+  count(aid = toupper(gsub("^(.+)(.{2}$)", "\\1-\\2", aid)))
+```
+
+No gráfico abaixo analisamos a dispersão dos pagamentos totais (salários, indenizações e benefícios) feitos a todos os membros ativos por mais de 6 meses nos tribunais e no ministério público do estado. Cada ponto no gráfico representa um pagamento feito a algum mebro ativo e os maiores valores pagos estão distribuídos no TRT-13 e no MPPB, onde o piso das remunerações ficam próximos dos R\$ 50 mil. O **`r per_reg_100k$aid`** registrou **`r per_reg_100k$n`** pagamentos acima de R\$ 100 mil com **`r per_reg_150k$n`** superando a marca de R\$ 150 mil. 
+
+#### Gráfico: Maiores quantias recebida em um mês
+
+```{r fig.height=6.5, fig.width=6.5}
+per_reg %>% 
+  ggplot(aes(x = reorder(aid, total_max), y = total_max / 1e3)) +
+  geom_quasirandom(
+    size = .8,
+    alpha = .8,
+    color = "#B361CA",
+    width = .3
+  ) +
+  ylim(0, 180) +
+  coord_flip() +
   labs(
-    title = NULL, 
-    subtitle = NULL, 
-    x = NULL, 
-    y = "Milhares de R$", 
-    fill = NULL
+    title = NULL,
+    subtitle = "Salário, indenização e gratificações exceto diárias.\nMembros ativos durante 6+ meses.",
+    x = "",
+    y = "Remuneração total (em milhares de R$)"
+  )
+```
+
+### Indenizações
+
+Considerando a dispersão dos benefícios pagos aos membros (exceto diárias), conforme já observado anteriormente, no MPPB as indenizações foram a principal forma de aumentar os ganhos dos membros para além do teto constitucional. Quase a todos os membros do MPPB receberam pagamentos de indenizações que superam os R\$ 15 mil.
+
+#### Gráfico: Maiores indenizações recebida em um mês
+
+```{r fig.height=6.5, fig.width=6.5}
+per_reg %>%
+  ggplot(aes(x = reorder(aid, perks_max), y = perks_max / 1e3)) +
+  geom_quasirandom(
+    size = .8,
+    alpha = .8,
+    color = "#B361CA",
+    width = .3
+  ) +
+  ylim(0, 60) +
+  coord_flip() +
+  labs(
+    title = NULL,
+    subtitle = "Indenizações exceto diárias. Geralmente auxílios.",
+    x = "",
+    y = "Remuneração total (em milhares de R$)"
   )
 ```
 
@@ -487,13 +588,14 @@ diarias_fmt <- function(.aid) {
          vl_diarias_total = (vl_diarias_total_servidor + vl_diarias_total_membro),
          vl_diarias_mean = vl_diarias_mean_servidor + vl_diarias_mean_membro,
          pc_qt_diarias_membro = scales::percent(qt_diarias_membro / qt_diarias),
-         pc_vl_diarias_membro = scales::percent(vl_diarias_total_membro /  vl_diarias_total),
-         across(where(is.numeric), ~ format(.x, big.mark = ".")))
+         pc_vl_diarias_membro = scales::percent(vl_diarias_total_membro /  vl_diarias_total)
+         )
 }
 
 diarias_tjpb <- diarias_fmt("tjpb")
 diarias_trt13 <- diarias_fmt("trt13")
 ```
+
 Dados do DadosJusBr mostram que, entre 2018 e 2020, na média, o TJ-PB realizou pagamentos a **`r diarias_tjpb$qt_diarias`** pessoas inativas e ativas na folha de pagamento da Corte. Somente **`r diarias_tjpb$qt_diarias_membro`** eram magistrados e apesar de serem somente **`r diarias_tjpb$pc_qt_diarias_membro`**, os magistrados embolsaram em média **`r diarias_tjpb$pc_vl_diarias_membro`** do valor anual das diárias pagas pelo Tribunal a toda sua folha de pagamento. Mais de **R\$ `r diarias_tjpb$vl_diarias_total_membro` mil/ano** foram para os magistrados em rubricas na qual não incidem o teto constitucional.
 
 Além do TJ-PB, somente o TRT-13 possui dados específicos sobre diárias pagas aos seus funcionários. Considerando os anos de 2018 e 2019, o TRT-13 realizou pagamentos a **`r diarias_trt13$qt_diarias`** pessoas inativas e ativas, sendo **`r diarias_trt13$qt_diarias_membro`** (**`r diarias_trt13$pc_qt_diarias_membro`**) magistrados. Neste ano os magistrados da corte trabalhista desembolsaram mais de **R\$ `r diarias_trt13$vl_diarias_total_membro` mil/ano** mil em diárias, **`r diarias_trt13$pc_vl_diarias_membro`** do total pago pelo Tribunal.
@@ -506,14 +608,68 @@ maior_diaria_paga <- incomes %>%
   ungroup() %>% 
   slice_max(order_by = perks_daily, n = 2) %>%
   mutate(
-    perks_daily_fmt = format(perks_daily, big.mark = "."),
-    income_total_fmt = format(income_total, big.mark = "."),
-    income_mean_year = format(income_mean_year, big.mark = "."),
+    perks_daily_fmt = perks_daily,
+    income_total_fmt = income_total,
+    income_mean_year = income_mean_year,
     aid = toupper(aid) %>% gsub("^(.+)(.{2}$)", "\\1-\\2", .)
   )
 ```
 
 A maior diária paga foi a um servidor do **`r maior_diaria_paga$aid[1]`**. Um **`r maior_diaria_paga$role[1]`** desembolsou R\$ **`r maior_diaria_paga$perks_daily_fmt[1]`** em **`r month.name[maior_diaria_paga$month[1]]`** de **`r maior_diaria_paga$year[1]`**. A segunda maior foi a um **`r maior_diaria_paga$role[2]`** do **`r maior_diaria_paga$aid[2]`**, que em **`r month.name[maior_diaria_paga$month[2]]`** de **`r maior_diaria_paga$year[2]`** recebeu sozinho R\$ **`r maior_diaria_paga$perks_daily_fmt[2]`**. A diária aumentou substantivamente pagamentos tanto do analista como do magistrado. O analista viu seu salário subir da média anual de R\$ **`r maior_diaria_paga$income_mean_year[1]`** para R\$ **`r maior_diaria_paga$income_total_fmt[1]`** e o corregedor de R\$ **`r maior_diaria_paga$income_mean_year[2]`** para R\$ **`r maior_diaria_paga$income_total_fmt[2]`**.
+
+### Benefícios e gratificações
+
+#### Gráfico: Maior benefício recebida em um mês
+
+```{r fig.height=6.5, fig.width=6.5}
+per_reg %>%
+  ggplot(aes(x = reorder(aid, funds_max), y = funds_max / 1e3)) +
+  geom_quasirandom(
+    size = .8,
+    alpha = .8,
+    color = "#B361CA",
+    width = .3
+  ) +
+  ylim(0, 60) +
+  coord_flip() +
+  labs(
+    title = NULL,
+    subtitle = "Indenizações exceto diárias. Geralmente auxílios.",
+    x = "",
+    y = "Remuneração total (em milhares de R$)"
+  )
+```
+
+#### Tabela: Maiores pagamentos de benefício por tipo e órgão
+
+```{r}
+incomes %>%
+  filter(active, type == "membro" | aid == "trepb") %>%
+  mutate(
+    id = paste(reg, name),
+    total = wage + perks_except_daily + funds_total - discounts_ceil_retention
+  ) %>%
+  group_by(aid) %>%
+  summarise(
+
+    funds_trust_position = max(funds_trust_position),
+    funds_eventual_benefits = max(funds_eventual_benefits),
+    funds_personal_benefits = max(funds_personal_benefits),
+    funds_origin_pos = max(funds_origin_pos),
+    funds_gratification = max(funds_gratification),
+    
+    .groups = "drop"
+  ) %>%
+  mutate(across(where(is.double), ~ replace_na(.x, 0))) %>% 
+  column_to_rownames("aid") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("aid") %>% 
+  kbl(format.args = list(big.mark = ".", decimal.mark = ","),
+      col.names = c("", "MPPB", "TJPB", "TREPB", "TRT13")) %>% 
+      footnote("TODO: traduzir col-names")
+```
+
 
 ### Notas técnicas
 
